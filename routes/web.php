@@ -63,11 +63,10 @@ Route::middleware('auth')->group(function () {
 | Dataset Explorer
 |--------------------------------------------------------------------------
 */
-
 Route::get('/datasets', function (Request $request) {
     $query = Dataset::with(['category', 'author']);
 
-    // Search by title/description
+    // Search
     if ($request->filled('q')) {
         $q = $request->q;
         $query->where(function ($sub) use ($q) {
@@ -81,7 +80,24 @@ Route::get('/datasets', function (Request $request) {
         $query->where('category_id', $request->category);
     }
 
-    $datasets = $query->latest()->paginate(10)->withQueryString();
+    // Sorting
+    switch ($request->input('sort')) {
+        case 'oldest':
+            $query->oldest();
+            break;
+        case 'views':
+            $query->orderByDesc('views');
+            break;
+        case 'downloads':
+            $query->orderByDesc('downloads');
+            break;
+        default:
+            $query->latest();
+    }
+
+    // Pagination with per_page
+    $perPage = $request->input('per_page', 10);
+    $datasets = $query->paginate($perPage)->withQueryString();
     $categories = \App\Models\Category::all();
 
     return view('datasets.index', compact('datasets', 'categories'));
@@ -90,20 +106,32 @@ Route::get('/datasets', function (Request $request) {
 Route::get('/datasets/{id}', function ($id) {
     $dataset = Dataset::with(['category', 'author', 'values.region'])
         ->findOrFail($id);
+        
+        // Tambahkan jumlah views
+        $dataset->increment('views');
 
     return view('datasets.show', compact('dataset'));
 })->name('datasets.show');
 
+Route::get('/datasets/{id}/download', function ($id) {
+    $dataset = Dataset::findOrFail($id);
+
+    // Tambah counter downloads
+    $dataset->increment('downloads');
+
+    // Misal file tersimpan di storage/app/datasets
+    return response()->download(storage_path("app/datasets/{$dataset->file}"));
+})->name('datasets.download');
+
 /*
 |--------------------------------------------------------------------------
-| Articles (Data Bicara)
+| Articles
 |--------------------------------------------------------------------------
 */
-
 Route::get('/articles', function (Request $request) {
     $query = Article::with('author');
 
-    // Search by title/content
+    // Search
     if ($request->filled('q')) {
         $q = $request->q;
         $query->where(function ($sub) use ($q) {
@@ -112,13 +140,27 @@ Route::get('/articles', function (Request $request) {
         });
     }
 
-    $articles = $query->latest()->paginate(10)->withQueryString();
+    // Sorting
+    switch ($request->input('sort')) {
+        case 'oldest':
+            $query->oldest();
+            break;
+        case 'views':
+            $query->orderByDesc('views');
+            break;
+        default:
+            $query->latest();
+    }
+
+    // Pagination with per_page
+    $perPage = $request->input('per_page', 10);
+    $articles = $query->paginate($perPage)->withQueryString();
 
     return view('articles.index', compact('articles'));
 })->name('articles.index');
 
-Route::get('/articles/{slug}', function ($slug) {
-    $article = Article::with('author')->where('slug', $slug)->firstOrFail();
+Route::get('/articles/{id}', function ($id) {
+    $article = Article::with('author')->findOrFail($id);
 
     return view('articles.show', compact('article'));
 })->name('articles.show');

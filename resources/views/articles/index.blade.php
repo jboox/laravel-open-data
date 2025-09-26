@@ -17,6 +17,20 @@
         </button>
     </form>
 
+    <!-- Per page selector -->
+    <form method="GET" action="{{ route('articles.index') }}">
+        @foreach(request()->except('per_page') as $key => $value)
+            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+        @endforeach
+        <select name="per_page" onchange="this.form.submit()" class="border rounded px-3 py-1">
+            @foreach([10, 25, 50] as $size)
+                <option value="{{ $size }}" {{ request('per_page', 10) == $size ? 'selected' : '' }}>
+                    {{ $size }} per halaman
+                </option>
+            @endforeach
+        </select>
+    </form>
+
     <!-- Article List -->
     @foreach($articles as $article)
         <div class="bg-white shadow-md rounded p-4 mb-4">
@@ -35,6 +49,17 @@
             </a>
         </div>
     @endforeach
+
+    @if ($articles->count())
+    <div class="flex justify-between items-center mt-6 text-sm text-gray-600">
+        <p>
+            Menampilkan {{ $articles->firstItem() }}–{{ $articles->lastItem() }}
+            dari {{ $articles->total() }} artikel
+        </p>
+        {{ $articles->links() }}
+    </div>
+    @endif
+
 
     <div class="mt-6">
         {{ $articles->links() }}
