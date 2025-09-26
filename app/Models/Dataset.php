@@ -13,7 +13,9 @@ class Dataset extends Model
         'api_url',
         'category_id',
         'created_by',
-        'published_at'
+        'published_at',
+        'views',
+        'downloads',
     ];
 
     protected $casts = [

@@ -125,7 +125,7 @@ Route::get('/datasets/{id}/download', function ($id) {
 
 /*
 |--------------------------------------------------------------------------
-| Articles
+| Articles (Data Bicara)
 |--------------------------------------------------------------------------
 */
 Route::get('/articles', function (Request $request) {
@@ -152,7 +152,7 @@ Route::get('/articles', function (Request $request) {
             $query->latest();
     }
 
-    // Pagination with per_page
+    // Pagination
     $perPage = $request->input('per_page', 10);
     $articles = $query->paginate($perPage)->withQueryString();
 
@@ -162,8 +162,12 @@ Route::get('/articles', function (Request $request) {
 Route::get('/articles/{id}', function ($id) {
     $article = Article::with('author')->findOrFail($id);
 
+    // Increment views
+    $article->increment('views');
+
     return view('articles.show', compact('article'));
 })->name('articles.show');
+
 
 /*
 |--------------------------------------------------------------------------
