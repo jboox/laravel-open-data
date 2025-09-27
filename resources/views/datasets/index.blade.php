@@ -10,49 +10,59 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6 items-center">
         <!-- Baris 1: Search + Kategori + Tombol -->
         <form method="GET" action="{{ route('datasets.index') }}" class="mb-4">
-    <!-- Baris 1: Dropdown Kategori, Sortir, Per Page -->
-    <div class="flex flex-wrap gap-2 mb-3">
-        <!-- Dropdown kategori -->
-        <select name="category"
-                class="border rounded px-3 py-2 w-48 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">Semua Kategori</option>
-            @foreach($categories as $cat)
-                <option value="{{ $cat->id }}" {{ request('category') == $cat->id ? 'selected' : '' }}>
-                    {{ $cat->name }}
-                </option>
-            @endforeach
-        </select>
+            <div class="flex flex-col md:flex-row gap-2">
+                <!-- Search input -->
+                <input type="text" name="q" value="{{ request('q') }}" placeholder="Cari dataset..."
+                    class="flex-grow border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
 
-        <!-- Sort -->
-        <select name="sort" onchange="this.form.submit()" class="border rounded px-3 py-2 w-48">
-            <option value="latest" {{ request('sort') == 'latest' ? 'selected' : '' }}>Terbaru</option>
-            <option value="oldest" {{ request('sort') == 'oldest' ? 'selected' : '' }}>Terlama</option>
-            <option value="views" {{ request('sort') == 'views' ? 'selected' : '' }}>Paling banyak views</option>
-            <option value="downloads" {{ request('sort') == 'downloads' ? 'selected' : '' }}>Paling banyak downloads</option>
-        </select>
+                <!-- Dropdown kategori -->
+                <select name="category"
+                        class="border rounded px-3 py-2 w-48 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Semua Kategori</option>
+                    @foreach($categories as $cat)
+                        <option value="{{ $cat->id }}" {{ request('category') == $cat->id ? 'selected' : '' }}>
+                            {{ $cat->name }}
+                        </option>
+                    @endforeach
+                </select>
 
-        <!-- Per Page -->
-        <select name="per_page" onchange="this.form.submit()" class="border rounded px-3 py-2 w-40">
-            @foreach([10, 25, 50] as $size)
-                <option value="{{ $size }}" {{ request('per_page', 10) == $size ? 'selected' : '' }}>
-                    {{ $size }} per halaman
-                </option>
-            @endforeach
-        </select>
-    </div>
+                <!-- Tombol Cari -->
+                <button type="submit"
+                        class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition">
+                    Cari
+                </button>
+            </div>
+        </form>
 
-    <!-- Baris 2: Search + Tombol Cari -->
-    <div class="flex gap-2">
-        <input type="text" name="q" value="{{ request('q') }}" placeholder="Cari dataset..."
-               class="flex-grow border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <!-- Baris 2: Sortir & Per Page -->
+        <div class="flex justify-end gap-2 mb-6">
+            <!-- Sort -->
+            <form method="GET" action="{{ route('datasets.index') }}">
+                @foreach(request()->except(['sort']) as $key => $value)
+                    <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                @endforeach
+                <select name="sort" onchange="this.form.submit()" class="border rounded px-3 py-2">
+                    <option value="latest" {{ request('sort') == 'latest' ? 'selected' : '' }}>Terbaru</option>
+                    <option value="oldest" {{ request('sort') == 'oldest' ? 'selected' : '' }}>Terlama</option>
+                    <option value="views" {{ request('sort') == 'views' ? 'selected' : '' }}>Paling banyak views</option>
+                    <option value="downloads" {{ request('sort') == 'downloads' ? 'selected' : '' }}>Paling banyak downloads</option>
+                </select>
+            </form>
 
-        <button type="submit"
-                class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition">
-            Cari
-        </button>
-    </div>
-</form>
-
+            <!-- Per Page -->
+            <form method="GET" action="{{ route('datasets.index') }}">
+                @foreach(request()->except(['per_page']) as $key => $value)
+                    <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                @endforeach
+                <select name="per_page" onchange="this.form.submit()" class="border rounded px-3 py-2">
+                    @foreach([10, 25, 50] as $size)
+                        <option value="{{ $size }}" {{ request('per_page', 10) == $size ? 'selected' : '' }}>
+                            {{ $size }} per halaman
+                        </option>
+                    @endforeach
+                </select>
+            </form>
+        </div>
 
     </div>
 

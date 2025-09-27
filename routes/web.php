@@ -15,36 +15,18 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 */
 
 // 🔹 Homepage
-Route::get('/', function (Request $request) {
-    $latestDatasets = Dataset::latest()->take(5)->get();
-    $latestArticles = Article::latest()->take(3)->get();
+Route::get('/', function () {
+    $latestDatasets = Dataset::with('category')->latest()->take(4)->get();
+    $latestArticles = Article::with('author')->latest()->take(4)->get();
 
-    $searchResults = null;
+    $stats = [
+        'datasets'   => Dataset::count(),
+        'articles'   => Article::count(),
+        'categories' => Category::count(),
+        'downloads'  => Dataset::sum('downloads'),
+    ];
 
-    if ($request->filled('q')) {
-        $q = $request->q;
-
-        $datasets = Dataset::with('category')
-            ->where(function ($query) use ($q) {
-                $query->where('title', 'like', "%{$q}%")
-                      ->orWhere('description', 'like', "%{$q}%");
-            })
-            ->take(5)->get();
-
-        $articles = Article::with('author')
-            ->where(function ($query) use ($q) {
-                $query->where('title', 'like', "%{$q}%")
-                      ->orWhere('content', 'like', "%{$q}%");
-            })
-            ->take(5)->get();
-
-        $searchResults = [
-            'datasets' => $datasets,
-            'articles' => $articles,
-        ];
-    }
-
-    return view('home', compact('latestDatasets', 'latestArticles', 'searchResults'));
+    return view('welcome', compact('latestDatasets', 'latestArticles', 'stats'));
 })->name('home');
 
 // 🔹 Dashboard (khusus user login & verified)
