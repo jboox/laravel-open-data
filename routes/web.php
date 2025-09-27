@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Dataset;
 use App\Models\Article;
 use App\Models\Category;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /*
 |--------------------------------------------------------------------------
@@ -113,14 +114,39 @@ Route::get('/datasets/{id}', function ($id) {
     return view('datasets.show', compact('dataset'));
 })->name('datasets.show');
 
-Route::get('/datasets/{id}/download', function ($id) {
-    $dataset = Dataset::findOrFail($id);
+// download csv
 
-    // Tambah counter downloads
+Route::get('/datasets/{id}/download', function ($id) {
+    $dataset = \App\Models\Dataset::with(['values.region'])->findOrFail($id);
+
+    // Increment downloads
     $dataset->increment('downloads');
 
-    // Misal file tersimpan di storage/app/datasets
-    return response()->download(storage_path("app/datasets/{$dataset->file}"));
+    // Generate CSV
+    $response = new StreamedResponse(function () use ($dataset) {
+        $handle = fopen('php://output', 'w');
+
+        // Header CSV
+        fputcsv($handle, ['Tanggal', 'Wilayah', 'Nilai']);
+
+        // Data rows
+        foreach ($dataset->values as $value) {
+            fputcsv($handle, [
+                \Carbon\Carbon::parse($value->date)->format('Y'),
+                $value->region->name ?? '-',
+                $value->value,
+            ]);
+        }
+
+        fclose($handle);
+    });
+
+    $filename = \Str::slug($dataset->title) . '.csv';
+
+    $response->headers->set('Content-Type', 'text/csv');
+    $response->headers->set('Content-Disposition', "attachment; filename=\"$filename\"");
+
+    return $response;
 })->name('datasets.download');
 
 /*

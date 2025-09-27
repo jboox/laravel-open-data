@@ -81,13 +81,13 @@
         </div>
     @endif
 
-    <!-- Tombol Download 
+    <!-- Tombol Download -->
     <div class="mt-6">
         <a href="{{ route('datasets.download', $dataset->id) }}"
-           class="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
+           class="text-blue-600 hover:underline ml-auto">
             ⬇️ Download Dataset
         </a>
-    </div> -->
+    </div> 
 </div>
 
 <!-- Chart.js -->
