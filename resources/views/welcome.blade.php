@@ -36,20 +36,21 @@
     </div>
 
     <!-- Search Global -->
-    <div class="flex justify-center mt-8">
+    <div class="flex justify-center mt-10">
         <form action="{{ route('search.global') }}" method="GET" class="w-full max-w-2xl">
-            <div class="relative flex">
+            <div class="relative flex items-center">
                 <!-- Input -->
                 <input 
                     type="text" 
+                    id="global-search"
                     name="q" 
                     value="{{ request('q') }}"
                     placeholder="Cari dataset atau artikel..." 
-                    class="flex-grow py-3 pl-12 pr-4 rounded-l-full border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                    class="flex-grow py-3 pl-12 pr-4 rounded-full border border-gray-300 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
                 >
 
-                <!-- Icon search kiri -->
-                <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                <!-- Icon search -->
+                <span class="absolute left-4 text-gray-400 pointer-events-none">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
                     </svg>
@@ -57,13 +58,12 @@
 
                 <!-- Tombol Cari -->
                 <button type="submit" 
-                    class="px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-r-full shadow-md transition">
+                    class="ml-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full shadow-md transform transition duration-200 hover:scale-105">
                     Cari
                 </button>
             </div>
         </form>
     </div>
-
 
     <!-- Dataset Terbaru -->
     <div class="mb-12">

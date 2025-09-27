@@ -6,6 +6,45 @@
     <title>{{ config('app.name', 'Sikka Open Data') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const input = document.getElementById("global-search");
+    const placeholders = [
+        "Silahkan cari dataset atau artikel...",
+        "Penduduk...",
+        "Kesehatan...",
+        "Pendidikan..."
+    ];
+    let index = 0;
+    let charIndex = 0;
+    let deleting = false;
+
+    function typeEffect() {
+        let current = placeholders[index];
+        if (!deleting) {
+            input.setAttribute("placeholder", current.substring(0, charIndex++));
+            if (charIndex > current.length) {
+                deleting = true;
+                setTimeout(typeEffect, 1500); // pause sebentar
+                return;
+            }
+        } else {
+            input.setAttribute("placeholder", current.substring(0, charIndex--));
+            if (charIndex < 0) {
+                deleting = false;
+                index = (index + 1) % placeholders.length;
+                charIndex = 0;
+            }
+        }
+        setTimeout(typeEffect, deleting ? 50 : 100);
+    }
+
+    typeEffect();
+});
+</script>
+
+
 <body class="bg-gray-50 text-gray-900">
 
     <!-- Navbar -->
