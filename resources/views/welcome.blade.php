@@ -11,26 +11,28 @@
     </div>
 
     <!-- Statistik Singkat -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center mb-12">
-        <div class="p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow hover:shadow-lg transition">
-            <div class="text-blue-600 text-4xl mb-2">📊</div>
-            <p class="text-3xl font-extrabold text-blue-700">{{ $stats['datasets'] }}</p>
-            <p class="text-gray-700 font-medium">Dataset</p>
-        </div>
-        <div class="p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow hover:shadow-lg transition">
-            <div class="text-green-600 text-4xl mb-2">📰</div>
-            <p class="text-3xl font-extrabold text-green-700">{{ $stats['articles'] }}</p>
-            <p class="text-gray-700 font-medium">Artikel</p>
-        </div>
-        <div class="p-6 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow hover:shadow-lg transition">
-            <div class="text-indigo-600 text-4xl mb-2">📂</div>
-            <p class="text-3xl font-extrabold text-indigo-700">{{ $stats['categories'] }}</p>
-            <p class="text-gray-700 font-medium">Kategori</p>
-        </div>
-        <div class="p-6 bg-gradient-to-br from-red-50 to-red-100 rounded-xl shadow hover:shadow-lg transition">
-            <div class="text-red-600 text-4xl mb-2">⬇️</div>
-            <p class="text-3xl font-extrabold text-red-700">{{ $stats['downloads'] }}</p>
-            <p class="text-gray-700 font-medium">Total Downloads</p>
+    <div class="w-full mb-12">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div class="p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow hover:shadow-lg transition">
+                <div class="text-blue-600 text-4xl mb-2">📊</div>
+                <p class="text-3xl font-extrabold text-blue-700">{{ $stats['datasets'] }}</p>
+                <p class="text-gray-700 font-medium">Dataset</p>
+            </div>
+            <div class="p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow hover:shadow-lg transition">
+                <div class="text-green-600 text-4xl mb-2">📰</div>
+                <p class="text-3xl font-extrabold text-green-700">{{ $stats['articles'] }}</p>
+                <p class="text-gray-700 font-medium">Artikel</p>
+            </div>
+            <div class="p-6 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow hover:shadow-lg transition">
+                <div class="text-indigo-600 text-4xl mb-2">📂</div>
+                <p class="text-3xl font-extrabold text-indigo-700">{{ $stats['categories'] }}</p>
+                <p class="text-gray-700 font-medium">Kategori</p>
+            </div>
+            <div class="p-6 bg-gradient-to-br from-red-50 to-red-100 rounded-xl shadow hover:shadow-lg transition">
+                <div class="text-red-600 text-4xl mb-2">⬇️</div>
+                <p class="text-3xl font-extrabold text-red-700">{{ $stats['downloads'] }}</p>
+                <p class="text-gray-700 font-medium">Total Downloads</p>
+            </div>
         </div>
     </div>
 
