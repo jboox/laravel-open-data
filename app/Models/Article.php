@@ -11,7 +11,8 @@ class Article extends Model
         'slug',
         'content',
         'author_id',
-        'published_at'
+        'published_at',
+        'views',
     ];
 
     protected $casts = [
