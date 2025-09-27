@@ -43,6 +43,34 @@ Route::middleware('auth')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| Search Global
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/search', function (Request $request) {
+    $q = $request->input('q');
+
+    $datasets = Dataset::with('category')
+        ->where(function ($query) use ($q) {
+            $query->where('title', 'like', "%{$q}%")
+                  ->orWhere('description', 'like', "%{$q}%");
+        })
+        ->latest()
+        ->get();
+
+    $articles = Article::with('author')
+        ->where(function ($query) use ($q) {
+            $query->where('title', 'like', "%{$q}%")
+                  ->orWhere('content', 'like', "%{$q}%");
+        })
+        ->latest()
+        ->get();
+
+    return view('search.results', compact('q', 'datasets', 'articles'));
+})->name('search.global');
+
+/*
+|--------------------------------------------------------------------------
 | Dataset Explorer
 |--------------------------------------------------------------------------
 */

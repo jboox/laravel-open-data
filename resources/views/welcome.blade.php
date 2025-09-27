@@ -2,13 +2,6 @@
 
 @section('content')
 <div class="max-w-6xl mx-auto py-10 px-4">
-    <!-- TEST GRID RESPONSIVE -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-gray-100 p-4 mb-12">
-    <div class="bg-red-300 p-6 text-center">Box 1</div>
-    <div class="bg-green-300 p-6 text-center">Box 2</div>
-    <div class="bg-blue-300 p-6 text-center">Box 3</div>
-    <div class="bg-yellow-300 p-6 text-center">Box 4</div>
-    </div>
 
     <!-- Hero -->
     <div class="text-center mb-12">
@@ -19,7 +12,7 @@
     </div>
 
     <!-- Statistik Singkat -->
-    <div class="grid grid-cols-4 gap-4 mb-12">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-gray-100 p-4 mb-12">
         <div class="p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow hover:shadow-lg transition text-center">
             <div class="text-blue-600 text-4xl mb-2">📊</div>
             <p class="text-3xl font-extrabold text-blue-700">{{ $stats['datasets'] }}</p>
@@ -43,16 +36,34 @@
     </div>
 
     <!-- Search Global -->
-    <form method="GET" action="{{ route('datasets.index') }}" class="mb-12">
-        <div class="flex max-w-2xl mx-auto">
-            <input type="text" name="q" placeholder="Cari dataset atau artikel..."
-                   class="flex-grow border rounded-l px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <button type="submit"
-                    class="bg-blue-600 text-white px-6 rounded-r hover:bg-blue-700 transition">
-                Cari
-            </button>
-        </div>
-    </form>
+    <div class="flex justify-center mt-8">
+        <form action="{{ route('search.global') }}" method="GET" class="w-full max-w-2xl">
+            <div class="relative flex">
+                <!-- Input -->
+                <input 
+                    type="text" 
+                    name="q" 
+                    value="{{ request('q') }}"
+                    placeholder="Cari dataset atau artikel..." 
+                    class="flex-grow py-3 pl-12 pr-4 rounded-l-full border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                >
+
+                <!-- Icon search kiri -->
+                <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+                    </svg>
+                </span>
+
+                <!-- Tombol Cari -->
+                <button type="submit" 
+                    class="px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-r-full shadow-md transition">
+                    Cari
+                </button>
+            </div>
+        </form>
+    </div>
+
 
     <!-- Dataset Terbaru -->
     <div class="mb-12">
