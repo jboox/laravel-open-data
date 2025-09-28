@@ -115,12 +115,12 @@ class DatasetController extends Controller
     {
         $dataset->increment('downloads');
 
-        // 🔹 Kalau dataset berupa file upload asli (langsung simpan di storage)
+        // Kalau ada file asli di storage
         if ($dataset->file_path && Storage::disk('public')->exists($dataset->file_path)) {
             return Storage::disk('public')->download($dataset->file_path);
         }
 
-        // 🔹 Kalau dataset berupa data values → generate export
+        // Generate data dari values
         $data = $dataset->values()->with('region')->get()->map(function ($value) {
             return [
                 'Tanggal' => $value->date ? \Carbon\Carbon::parse($value->date)->format('Y-m-d') : '-',
@@ -150,10 +150,7 @@ class DatasetController extends Controller
                 });
 
                 $response->headers->set('Content-Type', 'text/csv');
-                $response->headers->set(
-                    'Content-Disposition',
-                    "attachment; filename=\"{$filename}.csv\""
-                );
+                $response->headers->set('Content-Disposition', "attachment; filename=\"{$filename}.csv\"");
 
                 return $response;
         }
