@@ -7,6 +7,7 @@ use App\Models\Dataset;
 use App\Models\Article;
 use App\Models\Category;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Http\Controllers\DatasetController;
 
 /*
 |--------------------------------------------------------------------------
@@ -124,41 +125,6 @@ Route::get('/datasets/{id}', function ($id) {
     return view('datasets.show', compact('dataset'));
 })->name('datasets.show');
 
-// download csv
-
-Route::get('/datasets/{id}/download', function ($id) {
-    $dataset = \App\Models\Dataset::with(['values.region'])->findOrFail($id);
-
-    // Increment downloads
-    $dataset->increment('downloads');
-
-    // Generate CSV
-    $response = new StreamedResponse(function () use ($dataset) {
-        $handle = fopen('php://output', 'w');
-
-        // Header CSV
-        fputcsv($handle, ['Tanggal', 'Wilayah', 'Nilai']);
-
-        // Data rows
-        foreach ($dataset->values as $value) {
-            fputcsv($handle, [
-                \Carbon\Carbon::parse($value->date)->format('Y'),
-                $value->region->name ?? '-',
-                $value->value,
-            ]);
-        }
-
-        fclose($handle);
-    });
-
-    $filename = \Str::slug($dataset->title) . '.csv';
-
-    $response->headers->set('Content-Type', 'text/csv');
-    $response->headers->set('Content-Disposition', "attachment; filename=\"$filename\"");
-
-    return $response;
-})->name('datasets.download');
-
 /*
 |--------------------------------------------------------------------------
 | Articles (Data Bicara)
@@ -232,3 +198,19 @@ Route::get('/categories/{slug}', function ($slug, Request $request) {
 
 // 🔹 Auth routes (Breeze)
 require __DIR__.'/auth.php';
+
+/*
+|--------------------------------------------------------------------------
+| upload dan download dataset
+|--------------------------------------------------------------------------
+*/
+Route::resource('datasets', DatasetController::class);
+Route::get('datasets/{dataset}/download', [DatasetController::class, 'download'])->name('datasets.download');
+
+/*
+|--------------------------------------------------------------------------
+| Hanya untuk testing view
+|--------------------------------------------------------------------------
+*/
+
+Route::view('/test-rounded', 'test');

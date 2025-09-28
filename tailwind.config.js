@@ -5,6 +5,14 @@ module.exports = {
     "./resources/**/*.js",
     "./resources/**/*.vue",
     "./storage/framework/views/*.php",
+    "./resources/**/*.ts",
+  ],
+  safelist: [
+    'rounded',
+    'rounded-lg',
+    'rounded-full',
+    'px-4',
+    'py-3',
   ],
   theme: {
     extend: {},
