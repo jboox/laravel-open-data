@@ -10,6 +10,13 @@
     <form method="GET" action="{{ route('articles.index') }}" class="mb-6">
         <!-- Baris 1: Sortir & Per Page -->
         <div class="flex flex-wrap gap-2 mb-3">
+            <!-- Pencarian -->
+            <input type="text" name="q" value="{{ request('q') }}" placeholder="Cari artikel..."
+                   class="border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-48">
+            <button type="submit"
+                    class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition">
+                Cari
+            </button>
             <!-- Sort -->
             <select name="sort" onchange="this.form.submit()" class="border rounded px-3 py-2 w-48">
                 <option value="latest" {{ request('sort') == 'latest' ? 'selected' : '' }}>Terbaru</option>
@@ -25,16 +32,6 @@
                     </option>
                 @endforeach
             </select>
-        </div>
-
-        <!-- Baris 2: Search -->
-        <div class="flex gap-2">
-            <input type="text" name="q" value="{{ request('q') }}" placeholder="Cari artikel..."
-                   class="flex-grow border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <button type="submit"
-                    class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition">
-                Cari
-            </button>
         </div>
     </form>
 
