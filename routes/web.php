@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use App\Models\Dataset;
 use App\Models\Article;
 use App\Models\Category;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Http\Controllers\DatasetController;
 
 /*
@@ -47,7 +46,6 @@ Route::middleware('auth')->group(function () {
 | Search Global
 |--------------------------------------------------------------------------
 */
-
 Route::get('/search', function (Request $request) {
     $q = $request->input('q');
 
@@ -75,55 +73,13 @@ Route::get('/search', function (Request $request) {
 | Dataset Explorer
 |--------------------------------------------------------------------------
 */
-Route::get('/datasets', function (Request $request) {
-    $query = Dataset::with(['category', 'author']);
+// Dataset routes - Semua logic pindah ke DatasetController
+Route::resource('datasets', DatasetController::class);
 
-    // Search
-    if ($request->filled('q')) {
-        $q = $request->q;
-        $query->where(function ($sub) use ($q) {
-            $sub->where('title', 'like', "%{$q}%")
-                ->orWhere('description', 'like', "%{$q}%");
-        });
-    }
-
-    // Filter by category
-    if ($request->filled('category')) {
-        $query->where('category_id', $request->category);
-    }
-
-    // Sorting
-    switch ($request->input('sort')) {
-        case 'oldest':
-            $query->oldest();
-            break;
-        case 'views':
-            $query->orderByDesc('views');
-            break;
-        case 'downloads':
-            $query->orderByDesc('downloads');
-            break;
-        default:
-            $query->latest();
-    }
-
-    // Pagination with per_page
-    $perPage = $request->input('per_page', 10);
-    $datasets = $query->paginate($perPage)->withQueryString();
-    $categories = \App\Models\Category::all();
-
-    return view('datasets.index', compact('datasets', 'categories'));
-})->name('datasets.index');
-
-Route::get('/datasets/{id}', function ($id) {
-    $dataset = Dataset::with(['category', 'author', 'values.region'])
-        ->findOrFail($id);
-        
-        // Tambahkan jumlah views
-        $dataset->increment('views');
-
-    return view('datasets.show', compact('dataset'));
-})->name('datasets.show');
+// Download dataset dengan pilihan format
+Route::get('datasets/{dataset}/download/{format?}', [DatasetController::class, 'download'])
+    ->where('format', 'csv|xlsx|json')
+    ->name('datasets.download');
 
 /*
 |--------------------------------------------------------------------------
@@ -133,7 +89,6 @@ Route::get('/datasets/{id}', function ($id) {
 Route::get('/articles', function (Request $request) {
     $query = Article::with('author');
 
-    // Search
     if ($request->filled('q')) {
         $q = $request->q;
         $query->where(function ($sub) use ($q) {
@@ -142,7 +97,6 @@ Route::get('/articles', function (Request $request) {
         });
     }
 
-    // Sorting
     switch ($request->input('sort')) {
         case 'oldest':
             $query->oldest();
@@ -154,7 +108,6 @@ Route::get('/articles', function (Request $request) {
             $query->latest();
     }
 
-    // Pagination
     $perPage = $request->input('per_page', 10);
     $articles = $query->paginate($perPage)->withQueryString();
 
@@ -163,26 +116,21 @@ Route::get('/articles', function (Request $request) {
 
 Route::get('/articles/{id}', function ($id) {
     $article = Article::with('author')->findOrFail($id);
-
-    // Increment views
     $article->increment('views');
 
     return view('articles.show', compact('article'));
 })->name('articles.show');
-
 
 /*
 |--------------------------------------------------------------------------
 | Kategori
 |--------------------------------------------------------------------------
 */
-
 Route::get('/categories/{slug}', function ($slug, Request $request) {
     $category = Category::where('slug', $slug)->firstOrFail();
 
     $query = $category->datasets()->with(['author', 'category']);
 
-    // Search dalam kategori
     if ($request->filled('q')) {
         $q = $request->q;
         $query->where(function ($sub) use ($q) {
@@ -201,16 +149,9 @@ require __DIR__.'/auth.php';
 
 /*
 |--------------------------------------------------------------------------
-| upload dan download dataset
+| Testing Only (aktif kalau APP_DEBUG = true)
 |--------------------------------------------------------------------------
 */
-Route::resource('datasets', DatasetController::class);
-Route::get('datasets/{dataset}/download', [DatasetController::class, 'download'])->name('datasets.download');
-
-/*
-|--------------------------------------------------------------------------
-| Hanya untuk testing view
-|--------------------------------------------------------------------------
-*/
-
-Route::view('/test-rounded', 'test');
+if (config('app.debug')) {
+    Route::view('/test-rounded', 'test');
+}
