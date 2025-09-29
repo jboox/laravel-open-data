@@ -3,6 +3,11 @@
 return [
     'default' => 'default',
     'documentations' => [
+        'info' => [
+            'title' => 'Sikka Open Data API',
+            'description' => 'API publik untuk akses dataset open data Kabupaten Sikka',
+            'version' => '1.0.0',
+        ],
         'default' => [
             'api' => [
                 'title' => 'L5 Swagger UI',

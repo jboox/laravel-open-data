@@ -4,22 +4,38 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Dataset;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ArrayExport;
+use App\Http\Resources\DatasetResource;
 
+/**
+ * @OA\Info(
+ *     title="Sikka Open Data API",
+ *     version="1.0.0",
+ *     description="API publik untuk akses dataset open data Kabupaten Sikka"
+ * )
+ */
 class DatasetApiController extends Controller
 {
     /**
-     * List datasets (JSON API).
+     * @OA\Get(
+     *     path="/api/datasets",
+     *     summary="List all datasets",
+     *     tags={"Datasets"},
+     *     @OA\Parameter(name="q", in="query", description="Search keyword", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="category", in="query", description="Filter by category_id", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="sort", in="query", description="Sort (latest, oldest, views, downloads)", @OA\Schema(type="string")),
+     *     @OA\Response(response=200, description="List of datasets")
+     * )
      */
     public function index(Request $request)
     {
         $query = Dataset::with(['category', 'author']);
 
-        // 🔎 Search
         if ($request->filled('q')) {
             $q = $request->q;
             $query->where(function ($sub) use ($q) {
@@ -28,12 +44,10 @@ class DatasetApiController extends Controller
             });
         }
 
-        // 🏷️ Filter by category
         if ($request->filled('category')) {
             $query->where('category_id', $request->category);
         }
 
-        // ↕️ Sorting
         switch ($request->input('sort')) {
             case 'oldest':
                 $query->oldest();
@@ -48,7 +62,6 @@ class DatasetApiController extends Controller
                 $query->latest();
         }
 
-        // 📄 Pagination
         $perPage = $request->input('per_page', 10);
         $datasets = $query->paginate($perPage);
 
@@ -56,7 +69,13 @@ class DatasetApiController extends Controller
     }
 
     /**
-     * Show detail dataset.
+     * @OA\Get(
+     *     path="/api/datasets/{id}",
+     *     summary="Get dataset detail",
+     *     tags={"Datasets"},
+     *     @OA\Parameter(name="id", in="path", required=true, description="Dataset ID", @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Dataset detail")
+     * )
      */
     public function show(Dataset $dataset)
     {
@@ -64,14 +83,21 @@ class DatasetApiController extends Controller
         return new DatasetResource($dataset);
     }
 
-        /**
-     * Download dataset via API.
+    /**
+     * @OA\Get(
+     *     path="/api/datasets/{id}/download/{format}",
+     *     summary="Download dataset",
+     *     tags={"Datasets"},
+     *     @OA\Parameter(name="id", in="path", required=true, description="Dataset ID", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="format", in="path", required=false, description="Format file (csv, xlsx, json)", @OA\Schema(type="string")),
+     *     @OA\Response(response=200, description="Dataset file download")
+     * )
      */
     public function download(Dataset $dataset, $format = 'csv')
     {
         $dataset->increment('downloads');
 
-        // Kalau ada file asli
+        // Kalau ada file asli di storage
         if ($dataset->file_path && Storage::disk('public')->exists($dataset->file_path)) {
             return Storage::disk('public')->download($dataset->file_path);
         }

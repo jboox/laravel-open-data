@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class DatasetValue extends Model
 {
     use HasFactory;
-    
+
     protected $fillable = [
         'dataset_id',
         'region_id',

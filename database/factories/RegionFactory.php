@@ -13,7 +13,6 @@ class RegionFactory extends Factory
     {
         return [
             'name' => $this->faker->city,       // contoh: nama kota/wilayah
-            'code' => strtoupper($this->faker->lexify('RGN???')), // contoh kode unik
         ];
     }
 }
