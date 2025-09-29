@@ -23,7 +23,7 @@ class DatasetResource extends JsonResource
                 return $this->values->map(function ($v) {
                     return [
                         'date'   => $v->date,
-                        'region' => $v->region->name ?? null,
+                        'region' => optional($v->region)->name,
                         'value'  => $v->value,
                     ];
                 });
