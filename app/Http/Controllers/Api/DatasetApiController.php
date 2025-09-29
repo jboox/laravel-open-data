@@ -26,12 +26,87 @@ class DatasetApiController extends Controller
      *     path="/api/datasets",
      *     summary="List all datasets",
      *     tags={"Datasets"},
-     *     @OA\Parameter(name="q", in="query", description="Search keyword", @OA\Schema(type="string")),
-     *     @OA\Parameter(name="category", in="query", description="Filter by category_id", @OA\Schema(type="integer")),
-     *     @OA\Parameter(name="sort", in="query", description="Sort (latest, oldest, views, downloads)", @OA\Schema(type="string")),
-     *     @OA\Response(response=200, description="List of datasets")
+     *     @OA\Parameter(
+     *         name="q",
+     *         in="query",
+     *         required=false,
+     *         description="Search keyword in dataset title or description",
+     *         @OA\Schema(type="string", example="penduduk")
+     *     ),
+     *     @OA\Parameter(
+     *         name="category",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by category ID",
+     *         @OA\Schema(type="integer", example=2)
+     *     ),
+     *     @OA\Parameter(
+     *         name="sort",
+     *         in="query",
+     *         required=false,
+     *         description="Sort order (latest, oldest, views, downloads)",
+     *         @OA\Schema(type="string", example="downloads")
+     *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         required=false,
+     *         description="Number of datasets per page",
+     *         @OA\Schema(type="integer", example=10)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of datasets with pagination",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             example={
+     *                 "data": {
+     *                     {
+     *                         "id": 1,
+     *                         "title": "Jumlah Penduduk per Kecamatan",
+     *                         "description": "Dataset jumlah penduduk per kecamatan per tahun",
+     *                         "category": "Demografi",
+     *                         "author": "Admin",
+     *                         "views": 120,
+     *                         "downloads": 45,
+     *                         "published_at": "2025-09-25",
+     *                         "file_path": "http://127.0.0.1:8000/storage/datasets/penduduk.csv",
+     *                         "api_url": "http://127.0.0.1:8000/api/datasets/1"
+     *                     },
+     *                     {
+     *                         "id": 2,
+     *                         "title": "Angka Kemiskinan per Kecamatan",
+     *                         "description": "Dataset persentase penduduk miskin",
+     *                         "category": "Ekonomi",
+     *                         "author": "Admin",
+     *                         "views": 87,
+     *                         "downloads": 30,
+     *                         "published_at": "2025-09-20",
+     *                         "file_path": "http://127.0.0.1:8000/storage/datasets/kemiskinan.csv",
+     *                         "api_url": "http://127.0.0.1:8000/api/datasets/2"
+     *                     }
+     *                 },
+     *                 "links": {
+     *                     "first": "http://127.0.0.1:8000/api/datasets?page=1",
+     *                     "last": "http://127.0.0.1:8000/api/datasets?page=5",
+     *                     "prev": null,
+     *                     "next": "http://127.0.0.1:8000/api/datasets?page=2"
+     *                 },
+     *                 "meta": {
+     *                     "current_page": 1,
+     *                     "from": 1,
+     *                     "last_page": 5,
+     *                     "path": "http://127.0.0.1:8000/api/datasets",
+     *                     "per_page": 10,
+     *                     "to": 10,
+     *                     "total": 50
+     *                 }
+     *             }
+     *         )
+     *     )
      * )
      */
+
     public function index(Request $request)
     {
         $query = Dataset::with(['category', 'author']);
@@ -73,15 +148,82 @@ class DatasetApiController extends Controller
      *     path="/api/datasets/{id}",
      *     summary="Get dataset detail",
      *     tags={"Datasets"},
-     *     @OA\Parameter(name="id", in="path", required=true, description="Dataset ID", @OA\Schema(type="integer")),
-     *     @OA\Response(response=200, description="Dataset detail")
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Dataset ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="year",
+     *         in="query",
+     *         required=false,
+     *         description="Filter dataset values by year (YYYY)",
+     *         @OA\Schema(type="integer", example=2023)
+     *     ),
+     *     @OA\Parameter(
+     *         name="region",
+     *         in="query",
+     *         required=false,
+     *         description="Filter dataset values by region (ID or name)",
+     *         @OA\Schema(type="string", example="Sikka")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Dataset detail with optional filtering",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             example={
+     *                 "id": 1,
+     *                 "title": "Jumlah Penduduk per Kecamatan",
+     *                 "description": "Dataset jumlah penduduk Sikka per kecamatan per tahun",
+     *                 "category": "Demografi",
+     *                 "author": "Admin",
+     *                 "views": 12,
+     *                 "downloads": 5,
+     *                 "published_at": "2025-09-25",
+     *                 "file_path": "http://127.0.0.1:8000/storage/datasets/penduduk.csv",
+     *                 "api_url": "http://127.0.0.1:8000/api/datasets/1",
+     *                 "values": {
+     *                     {
+     *                         "date": "2023-01-01",
+     *                         "region": "Kecamatan Maumere",
+     *                         "value": 95000
+     *                     },
+     *                     {
+     *                         "date": "2023-01-01",
+     *                         "region": "Kecamatan Nita",
+     *                         "value": 45000
+     *                     }
+     *                 }
+     *             }
+     *         )
+     *     )
      * )
      */
-    public function show(Dataset $dataset)
+
+    public function show(Request $request, Dataset $dataset)
     {
-        $dataset->load(['category', 'author', 'values.region']);
+        $query = $dataset->values()->with('region');
+
+        if ($request->filled('year')) {
+            $query->whereYear('date', $request->year);
+        }
+
+        if ($request->filled('region')) {
+            $query->whereHas('region', function ($q) use ($request) {
+                $q->where('name', 'like', "%{$request->region}%")
+                ->orWhere('id', $request->region);
+            });
+        }
+
+        $dataset->setRelation('values', $query->get());
+        $dataset->load(['category', 'author']);
+
         return new DatasetResource($dataset);
     }
+
 
     /**
      * @OA\Get(
