@@ -7,6 +7,7 @@ use App\Models\Dataset;
 use App\Models\Article;
 use App\Models\Category;
 use App\Http\Controllers\DatasetController;
+use App\Http\Controllers\Api\DatasetApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -80,6 +81,12 @@ Route::resource('datasets', DatasetController::class);
 Route::get('datasets/{dataset}/download/{format?}', [DatasetController::class, 'download'])
     ->where('format', 'csv|xlsx|json')
     ->name('datasets.download');
+
+// Download dataset dengan pilihan format
+Route::get('/datasets', [DatasetApiController::class, 'index']);
+Route::get('/datasets/{dataset}', [DatasetApiController::class, 'show']);
+Route::get('/datasets/{dataset}/download/{format?}', [DatasetApiController::class, 'download'])
+    ->where('format', 'csv|xlsx|json');
 
 /*
 |--------------------------------------------------------------------------
