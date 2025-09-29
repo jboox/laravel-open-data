@@ -39,6 +39,9 @@ class DatasetApiTest extends TestCase
 
         $response = $this->getJson("/api/datasets/{$dataset->id}");
 
+        // 🔍 Debug: tampilkan isi response saat test jalan
+        $response->dump();
+
         $response->assertStatus(200)
                  ->assertJsonFragment([
                      'id' => $dataset->id,
