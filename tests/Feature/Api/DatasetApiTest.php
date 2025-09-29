@@ -3,7 +3,6 @@
 namespace Tests\Feature\Api;
 
 use Tests\TestCase;
-use App\Models\User;
 use App\Models\Category;
 use App\Models\Dataset;
 use App\Models\DatasetValue;
