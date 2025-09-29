@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Dataset extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'title',
         'description',
