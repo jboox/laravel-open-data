@@ -1,19 +1,44 @@
-<div>
-    <!-- Pilihan dataset -->
-    <h2 class="text-lg font-semibold mb-2">Pilih Dataset untuk dibandingkan:</h2>
-    <div class="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
-        @foreach($datasets as $ds)
-            <label class="flex items-center gap-2 border p-2 rounded cursor-pointer">
-                <input type="checkbox" value="{{ $ds->id }}" wire:model="selected">
-                <span>{{ $ds->title }} ({{ $ds->category->name ?? '-' }})</span>
+<div class="space-y-4">
+    <div class="grid gap-2 md:grid-cols-3">
+        @foreach($datasets as $d)
+            <label class="inline-flex items-center gap-2">
+                <input type="checkbox" value="{{ $d['id'] }}" wire:model.live="selected" class="rounded border-gray-300">
+                <span>{{ $d['title'] }}</span>
             </label>
         @endforeach
     </div>
 
-    <!-- Chart -->
-    @if($selectedDatasets->count())
-        <x-multi-dataset-chart :datasets="$selectedDatasets" />
-    @else
-        <p class="text-gray-600">Pilih minimal satu dataset untuk menampilkan grafik.</p>
-    @endif
+    <div class="rounded-lg border p-4">
+        <div id="apex-chart" style="min-height: 320px;"></div>
+    </div>
+
+    @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script>
+      document.addEventListener('livewire:init', () => {
+        let chartEl = document.querySelector('#apex-chart');
+        let chart = null;
+
+        function render(series, labels) {
+          const options = {
+            chart: { type: 'line', height: 320 },
+            series: series,
+            xaxis: { categories: labels },
+            stroke: { width: 3 },
+            noData: { text: 'No data selected' }
+          };
+          if (chart) { chart.destroy(); }
+          chart = new ApexCharts(chartEl, options);
+          chart.render();
+        }
+
+        // First render from server-side props
+        render(@json($series), @json($labels));
+
+        Livewire.on('chart-updated', (payload) => {
+          render(payload.series ?? [], payload.labels ?? []);
+        });
+      });
+    </script>
+    @endpush
 </div>

@@ -6,6 +6,7 @@
     <title>{{ config('app.name', 'Sikka Open Data') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    @livewireStyles
 </head>
 
 <body class="font-sans antialiased bg-gray-50 text-gray-800">
@@ -122,5 +123,7 @@
     <main>
         @yield('content')
     </main>
+    @stack('scripts')
+    @livewireScripts
 </body>
 </html>

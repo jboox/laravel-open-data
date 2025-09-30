@@ -15,6 +15,7 @@
                     <span>{{ $ds->title }} ({{ $ds->category->name ?? '-' }})</span>
                 </label>
             @endforeach
+            <livewire:dashboard-chart />
         </div>
         <button type="submit" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded">
             Tampilkan Chart
@@ -27,6 +28,6 @@
     @else
         <p class="text-gray-600">Pilih minimal satu dataset untuk menampilkan grafik.</p>
     @endif
-    @livewire('dashboard-chart')
+    <livewire:dashboard-chart />
 </div>
 @endsection
