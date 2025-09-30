@@ -7,10 +7,13 @@ use App\Models\Dataset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\UploadedFile;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ArrayExport;
 use App\Http\Resources\DatasetResource;
+use League\Csv\Reader;
 
 /**
  * @OA\Info(
@@ -278,5 +281,101 @@ class DatasetApiController extends Controller
 
                 return $response;
         }
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/datasets",
+     *     summary="Upload a new dataset",
+     *     tags={"Datasets"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 required={"title", "category_id", "file"},
+     *                 @OA\Property(property="title", type="string", example="Jumlah Penduduk 2023"),
+     *                 @OA\Property(property="description", type="string", example="Dataset penduduk tahun 2023"),
+     *                 @OA\Property(property="category_id", type="integer", example=1),
+     *                 @OA\Property(property="file", type="string", format="binary")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Dataset uploaded successfully",
+     *         @OA\JsonContent(
+     *             example={
+     *                 "success": true,
+     *                 "message": "Dataset uploaded successfully",
+     *                 "data": {
+     *                     "id": 10,
+     *                     "title": "Jumlah Penduduk 2023",
+     *                     "description": "Dataset penduduk tahun 2023",
+     *                     "category": "Demografi",
+     *                     "author": "Admin",
+     *                     "views": 0,
+     *                     "downloads": 0,
+     *                     "published_at": "2025-09-30",
+     *                     "file_path": "http://127.0.0.1:8000/storage/datasets/penduduk-2023.csv",
+     *                     "api_url": "http://127.0.0.1:8000/api/datasets/10"
+     *                 }
+     *             }
+     *         )
+     *     )
+     * )
+     */
+
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'title'       => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'category_id' => 'required|exists:categories,id',
+            'file'        => 'required|file|mimes:csv,txt,xlsx|max:2048',
+        ]);
+
+        if ($validator->fails()) {  
+            return response()->json([
+                'success' => false,
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        // Simpan file ke storage
+        $path = $request->file('file')->store('datasets', 'public');
+
+        // Buat dataset
+        $dataset = Dataset::create([
+            'title'       => $request->title,
+            'description' => $request->description,
+            'category_id' => $request->category_id,
+            'created_by'  => $request->user()->id ?? 1, // fallback ke admin ID 1
+            'file_path'   => $path,
+            'api_url'     => url('/api/datasets'),
+            'published_at'=> now(),
+            'views'       => 0,
+            'downloads'   => 0,
+        ]);
+
+        // 🚀 Auto-parse CSV ke dataset_values
+        $fullPath = storage_path("app/public/{$path}");
+        $csv = Reader::createFromPath($fullPath, 'r');
+        $csv->setHeaderOffset(0); // Anggap baris pertama adalah header
+
+        foreach ($csv as $record) {
+            // Asumsi header: date, region, value
+            $dataset->values()->create([
+                'date'      => $record['date'] ?? now(),
+                'region_id' => $record['region'] ?? null, // bisa pakai region_id atau nama region
+                'value'     => $record['value'] ?? 0,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Dataset uploaded successfully',
+            'data'    => new DatasetResource($dataset->load('values')),
+        ], 201);
     }
 }
