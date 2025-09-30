@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ArrayExport;
 use App\Http\Resources\DatasetResource;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 /*use League\Csv\Reader;
 
 /**
@@ -286,7 +287,8 @@ class DatasetApiController extends Controller
     /**
      * @OA\Post(
      *     path="/api/datasets",
-     *     summary="Upload a new dataset",
+     *     summary="Upload a new dataset (CSV or Excel)",
+     *     security={{"bearerAuth":{}}},
      *     tags={"Datasets"},
      *     @OA\RequestBody(
      *         required=true,
@@ -295,33 +297,61 @@ class DatasetApiController extends Controller
      *             @OA\Schema(
      *                 required={"title", "category_id", "file"},
      *                 @OA\Property(property="title", type="string", example="Jumlah Penduduk 2023"),
-     *                 @OA\Property(property="description", type="string", example="Dataset penduduk tahun 2023"),
+     *                 @OA\Property(property="description", type="string", example="Dataset jumlah penduduk per kecamatan"),
      *                 @OA\Property(property="category_id", type="integer", example=1),
-     *                 @OA\Property(property="file", type="string", format="binary")
+     *                 @OA\Property(
+     *                     property="file",
+     *                     type="string",
+     *                     format="binary",
+     *                     description="File dataset (CSV atau Excel XLSX)"
+     *                 )
      *             )
      *         )
      *     ),
      *     @OA\Response(
      *         response=201,
-     *         description="Dataset uploaded successfully",
+     *         description="Dataset uploaded and parsed successfully",
      *         @OA\JsonContent(
      *             example={
      *                 "success": true,
-     *                 "message": "Dataset uploaded successfully",
+     *                 "message": "Dataset uploaded and parsed successfully",
      *                 "data": {
-     *                     "id": 10,
+     *                     "id": 12,
      *                     "title": "Jumlah Penduduk 2023",
-     *                     "description": "Dataset penduduk tahun 2023",
+     *                     "description": "Dataset jumlah penduduk per kecamatan",
      *                     "category": "Demografi",
      *                     "author": "Admin",
      *                     "views": 0,
      *                     "downloads": 0,
      *                     "published_at": "2025-09-30",
      *                     "file_path": "http://127.0.0.1:8000/storage/datasets/penduduk-2023.csv",
-     *                     "api_url": "http://127.0.0.1:8000/api/datasets/10"
+     *                     "api_url": "http://127.0.0.1:8000/api/datasets/12"
      *                 }
      *             }
      *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             example={
+     *                 "success": false,
+     *                 "errors": {
+     *                     "title": {"The title field is required."},
+     *                     "category_id": {"The category id field is required."},
+     *                     "file": {"The file field is required."}
+     *                 }
+     *             }
+     *         )
+     *     ),
+     *     @OA\Examples(
+     *         summary="cURL example",
+     *         value="curl -X POST http://127.0.0.1:8000/api/datasets \\
+     *   -H 'Authorization: Bearer {API_TOKEN}' \\
+     *   -F 'title=Jumlah Penduduk 2023' \\
+     *   -F 'description=Dataset penduduk tahun 2023' \\
+     *   -F 'category_id=1' \\
+     *   -F 'file=@storage/samples/penduduk.csv'"
      *     )
      * )
      */
@@ -332,7 +362,7 @@ class DatasetApiController extends Controller
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'category_id' => 'required|exists:categories,id',
-            'file'        => 'required|file|mimes:csv,txt|max:2048',
+            'file'        => 'required|file|mimes:csv,txt,xlsx|max:4096',
         ]);
 
         if ($validator->fails()) {
@@ -358,42 +388,35 @@ class DatasetApiController extends Controller
             'downloads'   => 0,
         ]);
 
-        // 🚀 Parse CSV langsung dari Storage
+        // 🚀 Parsing file (CSV atau Excel)
         $fullPath = Storage::disk('public')->path($path);
+        $extension = strtolower($request->file('file')->getClientOriginalExtension());
 
-        if (($handle = fopen($fullPath, 'r')) !== false) {
-            $header = fgetcsv($handle, 1000, ',');
+        if (in_array($extension, ['csv', 'txt'])) {
+            // Parse CSV
+            if (($handle = fopen($fullPath, 'r')) !== false) {
+                $header = fgetcsv($handle, 1000, ',');
 
-            while (($row = fgetcsv($handle, 1000, ',')) !== false) {
-                $record = array_combine($header, $row);
-
-                // 🔎 Handle region (ID atau Nama)
-                $regionValue = $record['region'] ?? null;
-                $regionId = null;
-
-                if ($regionValue) {
-                    if (is_numeric($regionValue)) {
-                        // Kalau angka → langsung pakai sebagai region_id
-                        $regionId = $regionValue;
-                    } else {
-                        // Kalau string → cari atau buat Region baru
-                        $region = \App\Models\Region::firstOrCreate(
-                            ['name' => $regionValue],
-                            ['level' => 'kabupaten'] // default level
-                        );
-                        $regionId = $region->id;
-                    }
+                while (($row = fgetcsv($handle, 1000, ',')) !== false) {
+                    $record = array_combine($header, $row);
+                    $this->saveDatasetValue($dataset, $record);
                 }
 
-                // Insert dataset value
-                $dataset->values()->create([
-                    'date'      => $record['date'] ?? now(),
-                    'region_id' => $regionId,
-                    'value'     => $record['value'] ?? 0,
-                ]);
+                fclose($handle);
             }
+        } elseif ($extension === 'xlsx') {
+            // Parse Excel
+            $spreadsheet = IOFactory::load($fullPath);
+            $sheet = $spreadsheet->getActiveSheet();
+            $rows = $sheet->toArray(null, true, true, true);
 
-            fclose($handle);
+            $header = array_map('strtolower', $rows[1]); // baris pertama header
+            unset($rows[1]);
+
+            foreach ($rows as $row) {
+                $record = array_combine($header, array_values($row));
+                $this->saveDatasetValue($dataset, $record);
+            }
         }
 
         return response()->json([
@@ -402,4 +425,144 @@ class DatasetApiController extends Controller
             'data'    => new DatasetResource($dataset->load(['values.region'])),
         ], 201);
     }
+
+    /**
+     * Helper untuk simpan dataset value dengan region auto-create
+     */
+    private function saveDatasetValue($dataset, $record)
+    {
+        $regionValue = $record['region'] ?? null;
+        $regionId = null;
+
+        if ($regionValue) {
+            if (is_numeric($regionValue)) {
+                $region = \App\Models\Region::find($regionValue);
+                if (!$region) {
+                    $region = \App\Models\Region::create([
+                        'id'    => $regionValue,
+                        'name'  => "Region {$regionValue}",
+                        'level' => 1,
+                    ]);
+                }
+                $regionId = $region->id;
+            } else {
+                $region = \App\Models\Region::firstOrCreate(
+                    ['name' => $regionValue],
+                    ['level' => 1]
+                );
+                $regionId = $region->id;
+            }
+        }
+
+        $dataset->values()->create([
+            'date'      => $record['date'] ?? now(),
+            'region_id' => $regionId,
+            'value'     => $record['value'] ?? 0,
+        ]);
+    }
+
+    /**
+     * @OA\Put(
+     *     path="/api/datasets/{id}",
+     *     summary="Update an existing dataset",
+     *     security={{"bearerAuth":{}}},
+     *     tags={"Datasets"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Dataset ID",
+     *         @OA\Schema(type="integer", example=12)
+     *     ),
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 @OA\Property(property="title", type="string", example="Update Dataset Title"),
+     *                 @OA\Property(property="description", type="string", example="Updated description"),
+     *                 @OA\Property(property="category_id", type="integer", example=2),
+     *                 @OA\Property(property="file", type="string", format="binary", description="Optional new file")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Dataset updated successfully"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Dataset not found"
+     *     ),
+     *     @OA\Examples(
+     *         summary="cURL example",
+     *         value="curl -X PUT http://127.0.0.1:8000/api/datasets/12 \\
+     *   -H 'Authorization: Bearer {API_TOKEN}' \\
+     *   -F 'title=Jumlah Penduduk Update' \\
+     *   -F 'description=Dataset versi revisi' \\
+     *   -F 'category_id=2' \\
+     *   -F 'file=@storage/samples/penduduk.xlsx'"
+     *     )
+     * )
+     */
+
+    public function update(Request $request, Dataset $dataset)
+    {
+        $dataset->update($request->only('title', 'description', 'category_id'));
+
+        if ($request->hasFile('file')) {
+            $path = $request->file('file')->store('datasets', 'public');
+            $dataset->update(['file_path' => $path]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Dataset updated successfully',
+            'data'    => new DatasetResource($dataset),
+        ], 200);
+    }
+
+    /**
+     * @OA\Delete(
+     *     path="/api/datasets/{id}",
+     *     summary="Delete a dataset",
+     *     security={{"bearerAuth":{}}},
+     *     tags={"Datasets"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Dataset ID",
+     *         @OA\Schema(type="integer", example=12)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Dataset deleted successfully"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Dataset not found"
+     *     ),
+     *     @OA\Examples(
+     *         summary="cURL example",
+     *         value="curl -X DELETE http://127.0.0.1:8000/api/datasets/12 \\
+     *   -H 'Authorization: Bearer {API_TOKEN}'"
+     *     )
+     * )
+     */
+
+    public function destroy(Dataset $dataset)
+    {
+        // Hapus relasi dataset values dulu
+        $dataset->values()->delete();
+
+        // Hapus dataset
+        $dataset->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Dataset deleted successfully',
+        ], 200);
+    }
+
 }

@@ -3,50 +3,57 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Dataset;
-use App\Models\DatasetValue;
 use App\Models\Category;
-use App\Models\User;
+use App\Models\Dataset;
 use App\Models\Region;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;   // ✅ tambahin ini
 
 class DatasetSeeder extends Seeder
 {
     public function run(): void
     {
-        // Ambil user admin pertama
-        $admin = User::first();
+        // Pastikan ada kategori
+        $category = Category::firstOrCreate(
+            ['name' => 'Demografi'],
+            ['slug' => Str::slug('Demografi')] // ✅ slug otomatis
+        );
 
-        // Ambil kategori kesehatan
-        $category = Category::where('slug', 'kesehatan')->first();
-
-        // Ambil salah satu kecamatan dari RegionSeeder
-        $kecamatan = Region::where('level', 2)->first();
-
-        // Buat dataset contoh: Jumlah Penduduk
+        // Buat dataset sample
         $dataset = Dataset::create([
-            'title' => 'Jumlah Penduduk',
-            'description' => 'Jumlah penduduk berdasarkan data kependudukan Kabupaten Sikka',
+            'title'       => 'Jumlah Penduduk Sample',
+            'description' => 'Dataset contoh jumlah penduduk per kecamatan',
             'category_id' => $category->id,
-            'created_by' => $admin->id,
-            'published_at' => now(),
+            'created_by'  => 1,
+            'file_path'   => 'samples/penduduk.csv',
+            'api_url'     => url('/api/datasets'),
+            'published_at'=> now(),
+            'views'       => 0,
+            'downloads'   => 0,
         ]);
 
-        // Isi nilai contoh (series per tahun)
-        $values = [
-            ['date' => '2020-01-01', 'value' => 35000],
-            ['date' => '2021-01-01', 'value' => 36000],
-            ['date' => '2022-01-01', 'value' => 37000],
-            ['date' => '2023-01-01', 'value' => 38000],
-        ];
+        // Baca sample CSV
+        $samplePath = storage_path('samples/penduduk.csv');
+        if (file_exists($samplePath) && ($handle = fopen($samplePath, 'r')) !== false) {
+            $header = fgetcsv($handle, 1000, ',');
 
-        foreach ($values as $val) {
-            DatasetValue::create([
-                'dataset_id' => $dataset->id,
-                'region_id' => $kecamatan->id,
-                'date' => $val['date'],
-                'value' => $val['value'],
-                'meta' => ['satuan' => 'jiwa'],
-            ]);
+            while (($row = fgetcsv($handle, 1000, ',')) !== false) {
+                $record = array_combine($header, $row);
+
+                // Buat region kalau belum ada
+                $region = Region::firstOrCreate(
+                    ['name' => $record['region']],
+                    ['level' => 1]
+                );
+
+                $dataset->values()->create([
+                    'date'      => $record['date'],
+                    'region_id' => $region->id,
+                    'value'     => $record['value'],
+                ]);
+            }
+
+            fclose($handle);
         }
     }
 }

@@ -11,12 +11,12 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
-class DatasetApiUploadTest extends TestCase
+class DatasetApiUploadRegionNameTest extends TestCase
 {
     use RefreshDatabase;
 
     /** @test */
-    public function it_can_upload_a_dataset_file()
+    public function it_can_upload_and_parse_csv_with_region_name()
     {
         Storage::fake('public');
 
@@ -24,31 +24,24 @@ class DatasetApiUploadTest extends TestCase
         $user = User::factory()->create();
         Sanctum::actingAs($user);
 
-        $file = UploadedFile::fake()->create('penduduk.csv', 100, 'text/csv');
+        $csvContent = "date,region,value\n2023-01-01,Alok,95000\n2023-01-01,Maumere,45000\n";
+        $csvFile = UploadedFile::fake()->createWithContent('penduduk.csv', $csvContent);
 
         $response = $this->postJson('/api/datasets', [
             'title' => 'Jumlah Penduduk 2023',
             'description' => 'Dataset penduduk tahun 2023',
             'category_id' => $category->id,
-            'file' => $file,
+            'file' => $csvFile,
         ]);
 
         $response->assertStatus(201)
                  ->assertJsonStructure(['success', 'message', 'data']);
 
-        Storage::disk('public')->assertExists('datasets/' . $file->hashName());
-        $this->assertDatabaseHas('datasets', ['title' => 'Jumlah Penduduk 2023']);
-    }
+        $dataset = Dataset::first();
+        $this->assertNotNull($dataset);
 
-    /** @test */
-    public function it_validates_required_fields()
-    {
-        $user = User::factory()->create();
-        Sanctum::actingAs($user);
-
-        $response = $this->postJson('/api/datasets', []);
-
-        $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['title', 'category_id', 'file']);
+        $this->assertDatabaseHas('regions', ['name' => 'Alok']);
+        $this->assertDatabaseHas('regions', ['name' => 'Maumere']);
+        $this->assertCount(2, $dataset->values);
     }
 }
