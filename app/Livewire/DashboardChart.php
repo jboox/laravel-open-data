@@ -7,81 +7,63 @@ use App\Models\Dataset;
 
 class DashboardChart extends Component
 {
-    /** @var array<int,int> */
-    public array $selected = [];
+    public $datasets;
+    public $selected = [];
 
-    /** @var array<int, array{name:string,data:array<int,float|int|null>}> */
-    public array $series = [];
+    public $series = [];
+    public $labels = [];
 
-    /** @var array<int,string> */
-    public array $labels = [];
-
-    /** @var array<int, array{id:int,title:string}> */
-    public array $datasets = [];
-
-    public function mount(): void
+    public function mount()
     {
-        $this->datasets = Dataset::select('id','title')
-            ->orderBy('title')
-            ->get()
-            ->map(fn ($d) => ['id' => (int)$d->id, 'title' => (string)$d->title])
-            ->all();
+        $this->datasets = Dataset::with(['category', 'values.region'])->get();
 
-        // Auto-select dataset pertama agar chart tidak kosong
-        if (empty($this->selected) && !empty($this->datasets)) {
-            $this->selected = [$this->datasets[0]['id']];
+        // default pilih dataset pertama biar chart langsung tampil
+        if (empty($this->selected) && $this->datasets->count() > 0) {
+            $this->selected = [$this->datasets->first()->id];
         }
 
-        $this->refreshSeries();
+        $this->refreshChart();
     }
 
-    public function updatedSelected(): void
+    public function updatedSelected()
     {
-        $this->refreshSeries();
+        $this->refreshChart();
     }
 
-    protected function refreshSeries(): void
+    protected function refreshChart()
     {
-        // Contoh agregasi sederhana per tahun
         $labels = [];
         $series = [];
 
         if (!empty($this->selected)) {
+            // Ambil tahun unik dari semua dataset terpilih
             $years = [];
-            // Kumpulkan label tahun dari semua dataset terpilih
             foreach ($this->selected as $datasetId) {
-                $dataset = Dataset::with(['values' => fn($q) => $q->orderBy('date')])->find($datasetId);
-                if (!$dataset) {
-                    continue;
-                }
-                foreach ($dataset->values as $v) {
-                    $y = (string)($v->date instanceof \Carbon\Carbon ? $v->date->format('Y') : \Carbon\Carbon::parse($v->date)->format('Y'));
-                    $years[$y] = true;
+                $dataset = Dataset::with('values')->find($datasetId);
+                if (!$dataset) continue;
+
+                foreach ($dataset->values as $val) {
+                    $year = \Carbon\Carbon::parse($val->date)->format('Y');
+                    $years[$year] = true;
                 }
             }
-            $labels = array_values(array_keys($years));
+            $labels = array_keys($years);
             sort($labels);
 
-            // Bangun series per dataset (contoh: rata-rata per tahun)
+            // Build data series
             foreach ($this->selected as $datasetId) {
-                $dataset = Dataset::with(['values' => fn($q) => $q->orderBy('date')])->find($datasetId);
-                if (!$dataset) {
-                    continue;
-                }
+                $dataset = Dataset::with('values')->find($datasetId);
+                if (!$dataset) continue;
 
-                $byYear = [];
+                $valuesByYear = [];
                 foreach ($labels as $y) {
-                    $vals = $dataset->values->filter(function ($v) use ($y) {
-                        $yy = (string)($v->date instanceof \Carbon\Carbon ? $v->date->format('Y') : \Carbon\Carbon::parse($v->date)->format('Y'));
-                        return $yy === $y;
-                    })->pluck('value')->all();
-
-                    $byYear[$y] = count($vals) ? array_sum($vals)/count($vals) : null;
+                    $vals = $dataset->values->filter(fn($v) => \Carbon\Carbon::parse($v->date)->format('Y') === $y)->pluck('value');
+                    $valuesByYear[$y] = $vals->count() ? $vals->avg() : null;
                 }
 
                 $series[] = [
-                    'name' => (string)$dataset->title,
-                    'data' => array_map(fn($y) => $byYear[$y] ?? null, $labels),
+                    'name' => $dataset->title,
+                    'data' => array_map(fn($y) => $valuesByYear[$y] ?? null, $labels),
                 ];
             }
         }
@@ -89,7 +71,7 @@ class DashboardChart extends Component
         $this->labels = $labels;
         $this->series = $series;
 
-        // Emit event untuk JS chart front-end
+        // Emit event untuk chart JS
         $this->dispatch('chart-updated', series: $this->series, labels: $this->labels);
     }
 
