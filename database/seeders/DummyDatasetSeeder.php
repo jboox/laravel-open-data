@@ -12,57 +12,55 @@ class DummyDatasetSeeder extends Seeder
 {
     public function run(): void
     {
-        // Pastikan kategori ada
+        // Pastikan ada kategori
         $demografi = Category::firstOrCreate(
             ['name' => 'Demografi'],
             ['slug' => Str::slug('Demografi')]
         );
-
         $ekonomi = Category::firstOrCreate(
             ['name' => 'Ekonomi'],
             ['slug' => Str::slug('Ekonomi')]
         );
+        $pendidikan = Category::firstOrCreate(
+            ['name' => 'Pendidikan'],
+            ['slug' => Str::slug('Pendidikan')]
+        );
 
-        // Pastikan region ada
+        // Pastikan ada region
         $sikka = Region::firstOrCreate(['name' => 'Sikka'], ['level' => 2]);
-        $maumere = Region::firstOrCreate(['name' => 'Maumere'], ['level' => 2]);
 
-        // Dataset 1
-        $dataset1 = Dataset::firstOrCreate(
-            ['title' => 'Jumlah Penduduk Sample'],
-            [
-                'description' => 'Dataset contoh jumlah penduduk per wilayah',
-                'category_id' => $demografi->id,
-                'created_by'  => 1,
-                'published_at'=> now(),
-                'views'       => 0,
-                'downloads'   => 0,
-            ]
-        );
+        // Dataset dummy
+        $datasets = [
+            ['title' => 'Jumlah Penduduk Sample', 'category_id' => $demografi->id, 'min' => 80000, 'max' => 120000],
+            ['title' => 'PDRB Sample',             'category_id' => $ekonomi->id,   'min' => 100000, 'max' => 200000],
+            ['title' => 'Angka Partisipasi Sekolah','category_id' => $pendidikan->id,'min' => 60, 'max' => 100],
+            ['title' => 'Tingkat Pengangguran',    'category_id' => $ekonomi->id,   'min' => 2, 'max' => 15],
+        ];
 
-        $dataset1->values()->delete(); // reset kalau ada
-        $dataset1->values()->createMany([
-            ['date' => '2023-01-01', 'region_id' => $sikka->id, 'value' => 95000],
-            ['date' => '2023-01-01', 'region_id' => $maumere->id, 'value' => 45000],
-        ]);
+        foreach ($datasets as $data) {
+            $dataset = Dataset::updateOrCreate(
+                ['title' => $data['title']],
+                [
+                    'description' => 'Dummy dataset untuk uji dashboard',
+                    'category_id' => $data['category_id'],
+                    'created_by'  => 1,
+                    'published_at'=> now(),
+                    'views'       => 0,
+                    'downloads'   => 0,
+                ]
+            );
 
-        // Dataset 2
-        $dataset2 = Dataset::firstOrCreate(
-            ['title' => 'PDRB Sample'],
-            [
-                'description' => 'Dataset contoh PDRB per wilayah',
-                'category_id' => $ekonomi->id,
-                'created_by'  => 1,
-                'published_at'=> now(),
-                'views'       => 0,
-                'downloads'   => 0,
-            ]
-        );
+            // Hapus data lama
+            $dataset->values()->delete();
 
-        $dataset2->values()->delete();
-        $dataset2->values()->createMany([
-            ['date' => '2023-01-01', 'region_id' => $sikka->id, 'value' => 120000],
-            ['date' => '2023-01-01', 'region_id' => $maumere->id, 'value' => 80000],
-        ]);
+            // Tambahkan data tahunan untuk semua dataset
+            foreach (range(2020, 2024) as $year) {
+                $dataset->values()->create([
+                    'date'      => $year.'-01-01',
+                    'region_id' => $sikka->id,
+                    'value'     => rand($data['min'], $data['max']),
+                ]);
+            }
+        }
     }
 }
