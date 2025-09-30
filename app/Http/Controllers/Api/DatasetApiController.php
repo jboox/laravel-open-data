@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ArrayExport;
 use App\Http\Resources\DatasetResource;
-use League\Csv\Reader;
+/*use League\Csv\Reader;
 
 /**
  * @OA\Info(
@@ -332,17 +332,17 @@ class DatasetApiController extends Controller
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
             'category_id' => 'required|exists:categories,id',
-            'file'        => 'required|file|mimes:csv,txt,xlsx|max:2048',
+            'file'        => 'required|file|mimes:csv,txt|max:2048',
         ]);
 
-        if ($validator->fails()) {  
+        if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'errors'  => $validator->errors(),
             ], 422);
         }
 
-        // Simpan file ke storage
+        // Simpan file ke disk public
         $path = $request->file('file')->store('datasets', 'public');
 
         // Buat dataset
@@ -350,7 +350,7 @@ class DatasetApiController extends Controller
             'title'       => $request->title,
             'description' => $request->description,
             'category_id' => $request->category_id,
-            'created_by'  => $request->user()->id ?? 1, // fallback ke admin ID 1
+            'created_by'  => $request->user()->id ?? 1,
             'file_path'   => $path,
             'api_url'     => url('/api/datasets'),
             'published_at'=> now(),
@@ -358,24 +358,48 @@ class DatasetApiController extends Controller
             'downloads'   => 0,
         ]);
 
-        // 🚀 Auto-parse CSV ke dataset_values
-        $fullPath = storage_path("app/public/{$path}");
-        $csv = Reader::createFromPath($fullPath, 'r');
-        $csv->setHeaderOffset(0); // Anggap baris pertama adalah header
+        // 🚀 Parse CSV langsung dari Storage
+        $fullPath = Storage::disk('public')->path($path);
 
-        foreach ($csv as $record) {
-            // Asumsi header: date, region, value
-            $dataset->values()->create([
-                'date'      => $record['date'] ?? now(),
-                'region_id' => $record['region'] ?? null, // bisa pakai region_id atau nama region
-                'value'     => $record['value'] ?? 0,
-            ]);
+        if (($handle = fopen($fullPath, 'r')) !== false) {
+            $header = fgetcsv($handle, 1000, ',');
+
+            while (($row = fgetcsv($handle, 1000, ',')) !== false) {
+                $record = array_combine($header, $row);
+
+                // 🔎 Handle region (ID atau Nama)
+                $regionValue = $record['region'] ?? null;
+                $regionId = null;
+
+                if ($regionValue) {
+                    if (is_numeric($regionValue)) {
+                        // Kalau angka → langsung pakai sebagai region_id
+                        $regionId = $regionValue;
+                    } else {
+                        // Kalau string → cari atau buat Region baru
+                        $region = \App\Models\Region::firstOrCreate(
+                            ['name' => $regionValue],
+                            ['level' => 'kabupaten'] // default level
+                        );
+                        $regionId = $region->id;
+                    }
+                }
+
+                // Insert dataset value
+                $dataset->values()->create([
+                    'date'      => $record['date'] ?? now(),
+                    'region_id' => $regionId,
+                    'value'     => $record['value'] ?? 0,
+                ]);
+            }
+
+            fclose($handle);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Dataset uploaded successfully',
-            'data'    => new DatasetResource($dataset->load('values')),
+            'message' => 'Dataset uploaded and parsed successfully',
+            'data'    => new DatasetResource($dataset->load(['values.region'])),
         ], 201);
     }
 }
