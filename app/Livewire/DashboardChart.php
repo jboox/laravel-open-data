@@ -34,9 +34,9 @@ class DashboardChart extends Component
 
     protected function refreshChart()
     {
-        // Ambil id yang dicentang (key dengan nilai true)
+        // Ambil key yang dicentang
         $selectedIds = collect($this->selected)
-            ->filter(fn($checked) => $checked)
+            ->filter(fn($checked) => $checked) // ambil yg true
             ->keys()
             ->map(fn($id) => (int) $id)
             ->all();
