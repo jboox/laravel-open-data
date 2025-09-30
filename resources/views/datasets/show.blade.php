@@ -27,31 +27,7 @@
 
     <!-- Chart Visualisasi -->
     @if($dataset->values->count())
-        <div class="mb-8">
-            <h2 class="text-xl font-semibold mb-4">Visualisasi Data</h2>
-
-            <!-- Chart Options -->
-            <div class="flex flex-wrap gap-3 mb-4">
-                <select id="chart-type" class="border rounded px-3 py-2">
-                    <option value="line">Line Chart</option>
-                    <option value="bar">Bar Chart</option>
-                </select>
-
-                <input type="number" id="start-year" class="border rounded px-3 py-2 w-28" placeholder="Tahun Awal" min="1900" max="2100" />
-                <input type="number" id="end-year" class="border rounded px-3 py-2 w-28" placeholder="Tahun Akhir" min="1900" max="2100" />
-
-                <select id="region-filter" class="border rounded px-3 py-2">
-                    <option value="">Semua Wilayah</option>
-                    @foreach($dataset->values->pluck('region.name')->unique() as $region)
-                        <option value="{{ $region }}">{{ $region }}</option>
-                    @endforeach
-                </select>
-
-                <button onclick="updateChart()" class="bg-blue-600 text-white px-4 py-2 rounded">Filter</button>
-            </div>
-
-            <canvas id="datasetChart" height="100"></canvas>
-        </div>
+        <x-dataset-chart :dataset="$dataset" />
     @endif
 
     <!-- Tabel Data -->

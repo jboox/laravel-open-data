@@ -90,6 +90,10 @@ document.addEventListener("DOMContentLoaded", function () {
                         @endforelse
                     </div>
                 </div>
+                <a href="{{ route('dashboard') }}" 
+                    class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600">
+                    Analitik
+                </a>
             </div>
 
             <!-- Auth (desktop) -->

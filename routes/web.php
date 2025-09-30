@@ -157,3 +157,10 @@ require __DIR__.'/auth.php';
 if (config('app.debug')) {
     Route::view('/test-rounded', 'test');
 }
+
+/*
+|--------------------------------------------------------------------------
+| Dashboard Controller Example
+|--------------------------------------------------------------------------
+*/
+Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
