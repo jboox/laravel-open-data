@@ -2,22 +2,20 @@
 
 namespace Database\Factories;
 
-use App\Models\DatasetValue;
-use App\Models\Dataset;
-use App\Models\Region;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\Region;
 
+/**
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\DatasetValue>
+ */
 class DatasetValueFactory extends Factory
 {
-    protected $model = DatasetValue::class;
-
-    public function definition()
+    public function definition(): array
     {
         return [
-            'dataset_id' => Dataset::factory(),
-            'region_id'  => Region::factory(), // sekarang bisa pakai RegionFactory
-            'date'       => $this->faker->date(),
-            'value'      => $this->faker->randomFloat(2, 10, 1000), // angka float biar realistis
+            'date'      => $this->faker->dateTimeBetween('-5 years', 'now'),
+            'region_id' => Region::inRandomOrder()->first()->id ?? Region::factory(),
+            'value'     => $this->faker->numberBetween(1000, 100000),
         ];
     }
 }

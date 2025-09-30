@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             DatasetSeeder::class,
             ArticleSeeder::class,
+            DummyDatasetSeeder::class,
+            DummyDatasetFactorySeeder::class,
         ]);
     }
 
