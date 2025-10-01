@@ -1,19 +1,19 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto p-4">
+<div class="container mx-auto p-4 border rounded-lg bg-white dark:bg-gray-900 rounded-2xl shadow">
     <h2 class="text-xl font-bold mb-4">Analitik Perbandingan Dataset</h2>
 
-    {{-- Dropdown + tombol --}}
+    {{-- Dropdown pakai TomSelect --}}
     <div class="flex items-center space-x-2 mb-4">
-        <select id="datasetSelect" class="border rounded p-2">
+        <select id="datasetSelect" class="w-full border rounded-lg" placeholder="Cari dataset...">
             <option value="">Pilih dataset...</option>
             @foreach(\App\Models\Dataset::with('category')->get() as $ds)
                 <option value="{{ $ds->id }}">{{ $ds->title }} ({{ $ds->category->name ?? '-' }})</option>
             @endforeach
         </select>
-        <button id="addBtn" class="bg-blue-500 hover:bg-blue-600 text-black px-4 py-2 rounded">
-            Tambah
+        <button id="addBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center">
+            <span class="mr-1">+</span> Tambah
         </button>
     </div>
 
@@ -21,11 +21,21 @@
     <div id="selectedList" class="flex flex-wrap gap-2 mb-6"></div>
 
     {{-- Chart --}}
-    <div id="chart"></div>
+    <div class="bg-white p-4 rounded-lg shadow">
+        <div id="chart"></div>
+    </div>
 </div>
+
 
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
+    // Init TomSelect
+    new TomSelect("#datasetSelect", {
+        create: false,
+        sortField: {field: "text", direction: "asc"},
+        placeholder: "Cari dataset..."
+    });
+
     const selected = [];
     const series = [];
     let chart;
@@ -50,12 +60,9 @@
         span.innerHTML = `${label} <button class="text-red-600 ml-2" onclick="removeDataset(${id}, this)">✕</button>`;
         list.appendChild(span);
 
-        console.log("Fetching dataset:", id);
-
         try {
             const res = await fetch(`/api/datasets/${id}`);
             const json = await res.json();
-            console.log("API response:", json);
 
             if (json.data) {
                 const dataset = json.data;
@@ -90,10 +97,10 @@
     document.getElementById('addBtn').addEventListener('click', () => {
         const select = document.getElementById('datasetSelect');
         const id = parseInt(select.value);
-        const label = select.options[select.selectedIndex].text;
+        const label = select.options[select.selectedIndex]?.text;
         if (id) {
             addDataset(id, label);
-            select.value = '';
+            select.tomselect.clear(); // reset TomSelect
         }
     });
 </script>
