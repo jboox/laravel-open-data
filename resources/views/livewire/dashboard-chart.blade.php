@@ -1,59 +1,69 @@
-<div class="space-y-6">
+<div>
+    <h2 class="text-xl font-bold mb-4">Analitik Perbandingan Dataset</h2>
 
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        @foreach($datasets as $ds)
-            <label class="flex items-center gap-2 p-3 border rounded-lg shadow-sm bg-white hover:bg-gray-50 cursor-pointer">
-                <input 
-                    type="checkbox" 
-                    value="{{ $ds->id }}" 
-                    wire:model="selected" 
-                    wire:key="dataset-{{ $ds->id }}"
-                    class="text-blue-600 focus:ring-blue-500 rounded"
-                />
+    {{-- Dropdown & tombol tambah --}}
+    <div class="flex items-center space-x-2 mb-4">
+        <select wire:model="current" class="border rounded p-2">
+            <option value="">Pilih dataset...</option>
+            @foreach($datasets as $ds)
+                <option value="{{ $ds['id'] }}">{{ $ds['title'] }} ({{ $ds['category'] }})</option>
+            @endforeach
+        </select>
+        <button wire:click="addDataset" class="bg-blue-500 text-white px-4 py-2 rounded">
+            Tambah
+        </button>
+    </div>
 
-                <span class="text-sm font-medium text-gray-700">
-                    {{ $ds->title }}
-                    <span class="block text-xs text-gray-500">({{ $ds->category->name ?? '-' }})</span>
+    {{-- Daftar dataset terpilih --}}
+    <div class="flex flex-wrap gap-2 mb-6">
+        @foreach($selectedDatasets as $id)
+            @php
+                $ds = collect($datasets)->firstWhere('id', $id);
+            @endphp
+            @if($ds)
+                <span class="px-3 py-1 bg-gray-200 rounded-full flex items-center space-x-2">
+                    <span>{{ $ds['title'] }}</span>
+                    <button wire:click="removeDataset({{ $id }})" class="text-red-600">✕</button>
                 </span>
-            </label>
+            @endif
         @endforeach
     </div>
 
-    <!-- Debug -->
-    <pre class="text-xs bg-gray-100 p-2 border">
-        Selected: {{ json_encode($selected) }}
-    </pre>
-
-    <div class="rounded-lg border p-4 bg-white">
-        <div id="apex-chart" style="min-height: 360px;"></div>
+    {{-- Chart --}}
+    <div wire:ignore>
+        <div id="chart"></div>
     </div>
 
-    @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    <script>
-        document.addEventListener('livewire:init', () => {
-            let chartEl = document.querySelector('#apex-chart');
-            let chart = null;
-
-            function render(series, labels) {
-                const options = {
-                    chart: { type: 'line', height: 360 },
-                    series: series,
-                    xaxis: { categories: labels },
-                    stroke: { width: 3 },
-                    noData: { text: 'Tidak ada data' }
-                };
-                if (chart) { chart.destroy(); }
-                chart = new ApexCharts(chartEl, options);
-                chart.render();
-            }
-
-            render(@json($series), @json($labels));
-
-            Livewire.on('chart-updated', (payload) => {
-                render(payload.series ?? [], payload.labels ?? []);
-            });
-        });
-    </script>
-    @endpush
+    {{-- Debug --}}
+    <pre class="mt-4 bg-gray-100 p-2 text-sm">
+        Selected: {{ json_encode($selectedDatasets) }}
+        Series: {{ json_encode($series) }}
+    </pre>
 </div>
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+document.addEventListener('livewire:navigated', () => {
+    const chartEl = document.querySelector("#chart");
+
+    if (chartEl && !chartEl.__apexChart) {
+        chartEl.__apexChart = new ApexCharts(chartEl, {
+            chart: { type: 'line', height: 350 },
+            series: @json($series),
+            xaxis: { categories: @json($labels) }
+        });
+        chartEl.__apexChart.render();
+    }
+
+    Livewire.hook('morph.updated', ({ el, component }) => {
+        if (chartEl.__apexChart) {
+            chartEl.__apexChart.updateOptions({
+                series: @json($series),
+                xaxis: { categories: @json($labels) }
+            });
+        }
+    });
+});
+</script>
+@endpush

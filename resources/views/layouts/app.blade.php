@@ -120,8 +120,12 @@
     </nav>
 
     <!-- Main Content -->
-    <main>
+    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {{-- Untuk Blade biasa --}}
         @yield('content')
+
+        {{-- Untuk Livewire page component --}}
+        {{ $slot ?? '' }}
     </main>
     @stack('scripts')
     @livewireScripts

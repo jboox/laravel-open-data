@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\Dataset;
 use App\Models\Article;
 use App\Models\Category;
+use App\Livewire\TestSelect;
 
 
 /*
@@ -164,3 +165,5 @@ if (config('app.debug')) {
 |--------------------------------------------------------------------------
 */
 Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
+
+Route::get('/test-select', TestSelect::class);

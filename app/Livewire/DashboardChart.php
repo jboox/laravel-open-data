@@ -4,96 +4,69 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use App\Models\Dataset;
-use Carbon\Carbon;
 
 class DashboardChart extends Component
 {
-    public $datasets;
-    public array $selected = []; // sekarang array associative
+    public array $datasets = [];      // daftar dataset dari DB
+    public array $selectedDatasets = []; // daftar ID dataset terpilih
+    public ?string $current = null;   // dropdown pilihan saat ini
 
-    public $series = [];
-    public $labels = [];
+    public array $series = [];
+    public array $labels = [];
 
     public function mount()
     {
-        $this->datasets = Dataset::with(['category', 'values'])->get();
+        // Ambil semua dataset langsung dari DB
+        $this->datasets = Dataset::with('category')->get()
+            ->map(fn($ds) => [
+                'id' => $ds->id,
+                'title' => $ds->title,
+                'category' => $ds->category->name ?? '-'
+            ])
+            ->toArray();
+    }
 
-        // default pilih dataset pertama
-        if ($this->datasets->count() > 0) {
-            $first = $this->datasets->first()->id;
-            $this->selected[$first] = true;
+    public function addDataset()
+    {
+        if ($this->current && !in_array($this->current, $this->selectedDatasets)) {
+            $this->selectedDatasets[] = $this->current;
+            $this->current = null;
+            $this->refreshChart();
         }
+    }
 
+    public function removeDataset($id)
+    {
+        $this->selectedDatasets = array_values(array_filter(
+            $this->selectedDatasets,
+            fn($ds) => $ds != $id
+        ));
         $this->refreshChart();
     }
 
-    public function updatedSelected()
+    public function refreshChart()
     {
-        $this->refreshChart();
-    }
+        $this->series = [];
+        $this->labels = [];
 
-    protected function refreshChart()
-    {
-        // Ambil key yang dicentang
-        $selectedIds = collect($this->selected)
-            ->filter(fn($checked) => $checked) // ambil yg true
-            ->keys()
-            ->map(fn($id) => (int) $id)
-            ->all();
+        $datasets = Dataset::with(['values', 'category'])->whereIn('id', $this->selectedDatasets)->get();
 
-        \Log::info('Selected raw', $this->selected);
-        \Log::info('Selected IDs', $selectedIds);
+        foreach ($datasets as $dataset) {
+            $dataPoints = $dataset->values->map(fn($v) => (float) $v->value)->toArray();
+            $labels = $dataset->values->map(fn($v) => date('Y', strtotime($v->date)))->toArray();
 
-        $labels = [];
-        $series = [];
+            $this->series[] = [
+                'name' => $dataset->title,
+                'data' => $dataPoints,
+            ];
 
-        if (!empty($selectedIds)) {
-            $selectedDatasets = Dataset::with(['category', 'values'])
-                ->whereIn('id', $selectedIds)
-                ->get();
-
-            // kumpulkan semua tahun
-            $years = collect();
-            foreach ($selectedDatasets as $dataset) {
-                foreach ($dataset->values as $val) {
-                    if ($val->date) {
-                        $years->push(Carbon::parse($val->date)->format('Y'));
-                    }
-                }
-            }
-            $labels = $years->unique()->sort()->values()->all();
-
-            // bangun series per dataset
-            foreach ($selectedDatasets as $dataset) {
-                $valuesByYear = [];
-                foreach ($labels as $y) {
-                    $vals = $dataset->values
-                        ->filter(fn($v) => Carbon::parse($v->date)->format('Y') === $y)
-                        ->pluck('value')
-                        ->map(fn($v) => is_numeric($v) ? (float)$v : null)
-                        ->filter();
-
-                    $valuesByYear[$y] = $vals->count() ? round($vals->avg(), 2) : null;
-                }
-
-                $series[] = [
-                    'name' => $dataset->title,
-                    'data' => array_map(fn($y) => $valuesByYear[$y] ?? null, $labels),
-                ];
-            }
+            $this->labels = $labels;
         }
-
-        $this->labels = $labels;
-        $this->series = $series;
-
-        \Log::info('DashboardChart series', $this->series);
-        \Log::info('DashboardChart labels', $this->labels);
-
-        $this->dispatch('chart-updated', series: $this->series, labels: $this->labels);
     }
 
     public function render()
     {
-        return view('livewire.dashboard-chart');
+        return view('livewire.dashboard-chart')
+            ->layout('layouts.app');
     }
 }
