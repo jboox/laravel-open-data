@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Dataset;
 use App\Models\Category;
+use App\Exports\AggregatedDatasetExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -63,8 +64,7 @@ class DatasetController extends Controller
      */
     public function show(Dataset $dataset)
     {
-                // Agregasi dataset_values per tahun + wilayah + level
-        $values = DB::table('dataset_values')
+        $aggregatedValues = DB::table('dataset_values')
             ->join('regions', 'dataset_values.region_id', '=', 'regions.id')
             ->selectRaw('
                 YEAR(dataset_values.date) as year,
@@ -78,7 +78,81 @@ class DatasetController extends Controller
             ->orderBy('regions.name')
             ->get();
 
-        return view('datasets.show', compact('dataset', 'values'));
+        // mapping level → nama wilayah
+        $levelMap = [
+            1 => 'Kabupaten',
+            2 => 'Kecamatan',
+            3 => 'Kelurahan/Desa',
+            4 => 'RT/RW',
+        ];
+
+        $aggregatedValues = $aggregatedValues->map(function ($row) use ($levelMap) {
+            $row->region_level_name = $levelMap[$row->region_level] ?? $row->region_level;
+            return $row;
+        });
+
+        return view('datasets.show', compact('dataset', 'aggregatedValues'));
+    }
+
+
+    /**
+     * Download data agregasi (csv / json)
+     */
+    public function downloadAggregated(Dataset $dataset, $format)
+    {
+        $aggregatedValues = DB::table('dataset_values')
+            ->join('regions', 'dataset_values.region_id', '=', 'regions.id')
+            ->selectRaw('
+                YEAR(dataset_values.date) as year,
+                regions.name as region_name,
+                regions.level as region_level,
+                SUM(dataset_values.value) as total_value
+            ')
+            ->where('dataset_values.dataset_id', $dataset->id)
+            ->groupBy('year', 'regions.name', 'regions.level')
+            ->orderBy('year')
+            ->orderBy('regions.name')
+            ->get();
+
+        $levelMap = [
+            1 => 'Kabupaten',
+            2 => 'Kecamatan',
+            3 => 'Kelurahan/Desa',
+            4 => 'RT/RW',
+        ];
+
+        $aggregatedValues = $aggregatedValues->map(function ($row) use ($levelMap) {
+            return [
+                'Tahun'  => $row->year,
+                'Wilayah'=> $row->region_name,
+                'Level'  => $levelMap[$row->region_level] ?? $row->region_level,
+                'Total Nilai' => $row->total_value,
+            ];
+        });
+
+        if ($format === 'csv') {
+            $filename = 'aggregated_dataset_' . $dataset->id . '.csv';
+            $handle = fopen('php://temp', 'w+');
+            fputcsv($handle, array_keys($aggregatedValues->first() ?? []));
+            foreach ($aggregatedValues as $row) {
+                fputcsv($handle, $row);
+            }
+            rewind($handle);
+            return response(stream_get_contents($handle), 200, [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => "attachment; filename=$filename",
+            ]);
+        }
+
+        if ($format === 'json') {
+            return response()->json($aggregatedValues);
+        }
+
+        if ($format === 'xlsx') {
+            return Excel::download(new AggregatedDatasetExport($aggregatedValues), 'aggregated_dataset_' . $dataset->id . '.xlsx');
+        }
+
+        abort(404, 'Format not supported');
     }
 
     /**

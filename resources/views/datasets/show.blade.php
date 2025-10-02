@@ -27,35 +27,37 @@
 
     <!-- Chart Visualisasi -->
     @if($dataset->values->count())
-        <x-dataset-chart :dataset="$dataset" />
+        <x-dataset-chart :dataset="$dataset" :aggregated-values="$aggregatedValues" />
     @endif
 
-    <!-- Tabel Data -->
-    @if($dataset->values->count())
-        <div class="mb-8">
-            <h2 class="text-xl font-semibold mb-4">Data Series</h2>
-            <div class="overflow-x-auto">
-                <table class="min-w-full border text-sm">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="px-4 py-2 border">Tahun</th>
-                            <th class="px-4 py-2 border">Wilayah</th>
-                            <th class="px-4 py-2 border">Nilai</th>
+    <!-- Tabel Data Agregasi -->
+    @if($aggregatedValues->count())
+        <div class="overflow-x-auto mb-6">
+            <table class="w-full border-collapse text-sm">
+                <thead class="bg-gray-100 dark:bg-gray-700 text-left">
+                    <tr>
+                        <th class="px-4 py-2 border">Tahun</th>
+                        <th class="px-4 py-2 border">Wilayah</th>
+                        <th class="px-4 py-2 border">Level</th>
+                        <th class="px-4 py-2 border">Total Nilai</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($aggregatedValues as $row)
+                        <tr class="border-b dark:border-gray-600">
+                            <td class="px-4 py-2 border">{{ $row->year }}</td>
+                            <td class="px-4 py-2 border">{{ $row->region_name }}</td>
+                            <td class="px-4 py-2 border">{{ ucfirst($row->region_level_name) }}</td>
+                            <td class="px-4 py-2 border">{{ number_format($row->total_value, 0, ',', '.') }}</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($dataset->values as $value)
-                            <tr>
-                                <td class="px-4 py-2 border">{{ substr($value->date, 0, 4) }}</td>
-                                <td class="px-4 py-2 border">{{ $value->region->name ?? '-' }}</td>
-                                <td class="px-4 py-2 border">{{ $value->value }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
+    @else
+        <p class="text-gray-500 dark:text-gray-400">Tidak ada data agregasi untuk dataset ini.</p>
     @endif
+
 
     <!-- Dropdown Download -->
     <div class="mt-6">

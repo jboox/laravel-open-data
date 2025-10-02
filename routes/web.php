@@ -166,4 +166,7 @@ if (config('app.debug')) {
 */
 Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
 
-Route::get('/test-select', TestSelect::class);
+// Route untuk download data agregasi
+Route::get('datasets/{dataset}/download-aggregated/{format?}', [DatasetController::class, 'downloadAggregated'])
+    ->where('format', 'csv|json|xlsx')
+    ->name('datasets.downloadAggregated');
