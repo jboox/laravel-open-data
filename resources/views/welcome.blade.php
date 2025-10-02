@@ -36,7 +36,7 @@
     </div>
 
     <!-- Search Global -->
-    <div class="flex justify-center mt-10">
+    <div class="flex justify-center mt-10 mb-12">
         <form action="{{ route('search.global') }}" method="GET" class="w-full max-w-2xl">
             <div class="relative flex items-center">
                 <!-- Input -->
