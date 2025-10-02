@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DatasetController;
 use App\Http\Controllers\Api\DatasetApiController;
+use App\Http\Controllers\Admin\AdminController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Models\Dataset;
@@ -170,3 +171,19 @@ Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'ind
 Route::get('datasets/{dataset}/download-aggregated/{format?}', [DatasetController::class, 'downloadAggregated'])
     ->where('format', 'csv|json|xlsx')
     ->name('datasets.downloadAggregated');
+
+/*
+|--------------------------------------------------------------------------
+| Role Admin
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('/', [AdminController::class, 'index'])->name('dashboard');
+    Route::resource('users', App\Http\Controllers\Admin\UserController::class);
+    Route::resource('categories', App\Http\Controllers\Admin\CategoryController::class);
+    Route::resource('regions', App\Http\Controllers\Admin\RegionController::class);
+    Route::resource('datasets', App\Http\Controllers\Admin\DatasetController::class);
+    Route::resource('articles', App\Http\Controllers\Admin\ArticleController::class);
+});
+

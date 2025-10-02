@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             ArticleSeeder::class,
             DummyDatasetSeeder::class,
             DummyDatasetFactorySeeder::class,
+            AdminUserSeeder::class,
         ]);
     }
 
