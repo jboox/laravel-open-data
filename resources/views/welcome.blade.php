@@ -46,11 +46,13 @@
                     name="q" 
                     value="{{ request('q') }}"
                     placeholder="Cari dataset atau artikel..." 
-                    class="flex-grow py-3 pl-12 pr-4 rounded-full border border-gray-300 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200">
+                    class="flex-grow px-4 py-2 rounded-full border border-gray-300 
+                   focus:outline-none focus:ring-2 focus:ring-blue-400
+                   dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600">
 
                 <!-- Tombol Cari -->
                 <button type="submit" 
-                    class="ml-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full shadow-md transform transition duration-200 hover:scale-105">
+                    class="ml-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full shadow-md transform transition duration-200 hover:scale-105 dark:bg-blue-600 dark:hover:bg-blue-700">
                     Cari
                 </button>
             </div>
@@ -60,12 +62,12 @@
     <!-- Dataset Terbaru -->
     <div class="mb-12">
         <div class="flex justify-between items-center mb-4">
-            <h2 class="text-2xl font-semibold">Dataset Terbaru</h2>
+            <h2 class="text-2xl font-semibold dark:text-gray-100">Dataset Terbaru</h2>
             <a href="{{ route('datasets.index') }}" class="text-blue-600 hover:underline">Lihat semua →</a>
         </div>
         <div class="grid md:grid-cols-2 gap-6">
             @forelse($latestDatasets as $dataset)
-                <div class="border rounded-lg p-5 shadow-sm bg-white hover:shadow-md hover:scale-[1.01] transition transform">
+                <div class="border rounded-lg p-5 shadow-sm bg-white hover:shadow-md hover:scale-[1.01] transition transform dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200">
                     <h3 class="text-lg font-bold text-blue-600">
                         <a href="{{ route('datasets.show', $dataset->id) }}">{{ $dataset->title }}</a>
                     </h3>
@@ -76,7 +78,7 @@
                     <p class="text-gray-800">{{ Str::limit($dataset->description, 120, '...') }}</p>
                 </div>
             @empty
-                <p class="text-gray-600">Belum ada dataset tersedia.</p>
+                <p class="text-gray-600 dark:text-gray-400">Belum ada dataset tersedia.</p>
             @endforelse
         </div>
     </div>
@@ -84,8 +86,8 @@
     <!-- Artikel Terbaru -->
     <div>
         <div class="flex justify-between items-center mb-4">
-            <h2 class="text-2xl font-semibold">Artikel Terbaru</h2>
-            <a href="{{ route('articles.index') }}" class="text-blue-600 hover:underline">Lihat semua →</a>
+            <h2 class="text-2xl font-semibold dark:text-gray-100">Artikel Terbaru</h2>
+            <a href="{{ route('articles.index') }}" class="text-blue-600 hover:underline dark:text-gray-400">Lihat semua →</a>
         </div>
         <div class="grid md:grid-cols-2 gap-6">
             @forelse($latestArticles as $article)
@@ -93,14 +95,14 @@
                     <h3 class="text-lg font-bold text-blue-600">
                         <a href="{{ route('articles.show', $article->id) }}">{{ $article->title }}</a>
                     </h3>
-                    <p class="text-sm text-gray-600 mb-2">
+                    <p class="text-sm text-gray-600 mb-2 dark:text-gray-400">
                         Oleh: {{ $article->author->name ?? 'Unknown' }} |
                         📅 {{ $article->published_at?->format('d M Y') }}
                     </p>
                     <p class="text-gray-800">{{ Str::limit(strip_tags($article->content), 120, '...') }}</p>
                 </div>
             @empty
-                <p class="text-gray-600">Belum ada artikel tersedia.</p>
+                <p class="text-gray-600 dark:text-gray-400">Belum ada artikel tersedia.</p>
             @endforelse
         </div>
     </div>
