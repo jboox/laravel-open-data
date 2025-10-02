@@ -17,7 +17,7 @@
             @endforeach
         </select>
         <button id="addDataset"
-            class="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg shadow 
+            class="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg shadow 
                    hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition">
             Tambah
         </button>
@@ -52,7 +52,6 @@
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Inisialisasi TomSelect
     new TomSelect("#datasetSelect", {
         create: false,
         sortField: { field: "text", direction: "asc" },
@@ -76,42 +75,52 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     chart.render();
 
-    // Fungsi random warna
     function randomColor() {
         return `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`;
     }
 
-    // Update chart
     async function updateChart() {
-        let series = [];
-        let labels = [];
+        let allYears = new Set();
+        let datasetsData = [];
 
+        // Ambil semua dataset
         for (let item of selected) {
-            try {
-                let res = await fetch(`/api/datasets/${item.id}`);
-                let json = await res.json();
+            let res = await fetch(`/api/datasets/${item.id}`);
+            let json = await res.json();
 
-                let values = json.data.values || [];
-                let data = values.map(v => parseFloat(v.value));
-                labels = values.map(v => new Date(v.date).getFullYear());
+            let values = json.data.values || [];
+            values.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-                series.push({
-                    name: json.data.title,
-                    data: data,
-                    color: item.color
-                });
-            } catch (e) {
-                console.error("Gagal fetch dataset", item.id, e);
-            }
+            let yearMap = {};
+            values.forEach(v => {
+                const year = new Date(v.date).getFullYear();
+                yearMap[year] = parseFloat(v.value);
+                allYears.add(year);
+            });
+
+            datasetsData.push({
+                name: json.data.title,
+                yearMap: yearMap,
+                color: item.color
+            });
         }
 
-        chart.updateOptions({
-            xaxis: { categories: labels }
+        // Urutkan semua tahun
+        let labels = Array.from(allYears).sort((a, b) => a - b);
+
+        // Build series dengan sync tahun
+        let series = datasetsData.map(ds => {
+            return {
+                name: ds.name,
+                data: labels.map(y => ds.yearMap[y] ?? null), // null kalau tidak ada data
+                color: ds.color
+            };
         });
+
+        chart.updateOptions({ xaxis: { categories: labels } });
         chart.updateSeries(series);
     }
 
-    // Render chip dataset
     function renderSelected() {
         let container = document.getElementById('selectedDatasets');
         container.innerHTML = '';
@@ -131,7 +140,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Tambah dataset
     document.getElementById('addDataset').addEventListener('click', () => {
         let select = document.getElementById('datasetSelect');
         let id = select.value;

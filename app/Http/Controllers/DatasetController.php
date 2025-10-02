@@ -6,6 +6,7 @@ use App\Models\Dataset;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
@@ -62,10 +63,22 @@ class DatasetController extends Controller
      */
     public function show(Dataset $dataset)
     {
-        $dataset->load(['category', 'author', 'values.region']);
-        $dataset->increment('views');
+                // Agregasi dataset_values per tahun + wilayah + level
+        $values = DB::table('dataset_values')
+            ->join('regions', 'dataset_values.region_id', '=', 'regions.id')
+            ->selectRaw('
+                YEAR(dataset_values.date) as year,
+                regions.name as region_name,
+                regions.level as region_level,
+                SUM(dataset_values.value) as total_value
+            ')
+            ->where('dataset_values.dataset_id', $dataset->id)
+            ->groupBy('year', 'regions.name', 'regions.level')
+            ->orderBy('year')
+            ->orderBy('regions.name')
+            ->get();
 
-        return view('datasets.show', compact('dataset'));
+        return view('datasets.show', compact('dataset', 'values'));
     }
 
     /**
